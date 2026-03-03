@@ -1,11 +1,11 @@
 unnamed-chunk-1	
 unnamed-chunk-2	
 unnamed-chunk-3	
-unnamed-chunk-4	x
+unnamed-chunk-4	
 unnamed-chunk-5	
 unnamed-chunk-6	
 unnamed-chunk-7	
-unnamed-chunk-8	tf1	tf2
+unnamed-chunk-8	
 unnamed-chunk-9	x
 unnamed-chunk-10	x
 unnamed-chunk-11	courses_clean
@@ -34,3 +34,30 @@ unnamed-chunk-33
 unnamed-chunk-34	jan31
 unnamed-chunk-35	
 unnamed-chunk-36	
+setup	def.chunk.hook	.Random.seed
+person_data	hh_child5_df	person_df
+house_data	household_df
+total_data	food_exp_df	total_df
+dimensions	
+dimensions_h2p	house_2_pers_df
+dimensions_p2h_wrong	pers_2_house_wrong
+dimensions_p2h	pers_2_house_df
+dimensions_p2hf	pers_house_food_df
+dimensions_p2hf_left	pers_house_food_dfl
+gazer_table	gaz_table
+gazer_table_works	gaz_table
+gazer_table_smaller	
+gt_table	
+kbl_table	.DataTypes_Day3_withpics_cache/html/kbl_table_88fb2ce3f6b7fb348c8db60e2ed94a2b_meta
+dstats	dstats_df
+dstat_table	.DataTypes_Day3_withpics_cache/html/dstat_table_c08e809ecedf615ae1c5adac96047d08_meta
+bxplot	
+bxplot_pretty	
+plot_data	plot_df
+scatter1	
+scatter2	
+scatter3	
+scatter4	
+scholar1	docs	id	publications	titles
+scholar2	df	docs	dtm	matrix
+scholar3	

@@ -4,9 +4,8 @@ subtitle: "EKT 813"
 author: "Prof SF Koch"
 date: "today"
 format: 
-  html:
-    theme: solar
-    highlight-style: solarized
+  revealjs:
+    theme: solarized
 knitr:
   opts_chunk:
     echo: true

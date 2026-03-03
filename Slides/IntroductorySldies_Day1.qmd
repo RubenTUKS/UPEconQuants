@@ -6,7 +6,7 @@ date: "today"
 format: 
   revealjs:
     theme: solarized
-editor: visual
+editor: source
 bibliography: module.bib
 ---
 
@@ -259,7 +259,6 @@ kable(dfx, format = "latex", align='ccc', booktabs=T,
 3.  Each package has a similar philosophy
 4.  Practice, practice, practice...
 5.  [The Manifesto](https://cran.r-project.org/web/packages/tidyverse/vignettes/manifesto.html)
-
 
 ## R reading and practice
 

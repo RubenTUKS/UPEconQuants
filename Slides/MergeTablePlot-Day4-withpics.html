@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="Prof SF Koch">
-<meta name="dcterms.date" content="2026-03-03">
+<meta name="dcterms.date" content="2026-03-02">
 
 <title>Merging, Tables and some Plots</title>
 <style>
@@ -80,20 +80,20 @@ div.csl-indent {
 }</style>
 
 
-<script src="DataTypes_Day3_withpics_files/libs/clipboard/clipboard.min.js"></script>
-<script src="DataTypes_Day3_withpics_files/libs/quarto-html/quarto.js" type="module"></script>
-<script src="DataTypes_Day3_withpics_files/libs/quarto-html/tabsets/tabsets.js" type="module"></script>
-<script src="DataTypes_Day3_withpics_files/libs/quarto-html/axe/axe-check.js" type="module"></script>
-<script src="DataTypes_Day3_withpics_files/libs/quarto-html/popper.min.js"></script>
-<script src="DataTypes_Day3_withpics_files/libs/quarto-html/tippy.umd.min.js"></script>
-<script src="DataTypes_Day3_withpics_files/libs/quarto-html/anchor.min.js"></script>
-<link href="DataTypes_Day3_withpics_files/libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="DataTypes_Day3_withpics_files/libs/quarto-html/quarto-syntax-highlighting-dark-c70d880e88d09672f81c164feab79f78.css" rel="stylesheet" id="quarto-text-highlighting-styles">
-<script src="DataTypes_Day3_withpics_files/libs/bootstrap/bootstrap.min.js"></script>
-<link href="DataTypes_Day3_withpics_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="DataTypes_Day3_withpics_files/libs/bootstrap/bootstrap-856762d0a46514d10c03fa787621835c.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="dark">
-<script src="DataTypes_Day3_withpics_files/libs/kePrint-0.0.1/kePrint.js"></script>
-<link href="DataTypes_Day3_withpics_files/libs/lightable-0.0.1/lightable.css" rel="stylesheet">
+<script src="MergeTablePlot-Day4-withpics_files/libs/clipboard/clipboard.min.js"></script>
+<script src="MergeTablePlot-Day4-withpics_files/libs/quarto-html/quarto.js" type="module"></script>
+<script src="MergeTablePlot-Day4-withpics_files/libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="MergeTablePlot-Day4-withpics_files/libs/quarto-html/axe/axe-check.js" type="module"></script>
+<script src="MergeTablePlot-Day4-withpics_files/libs/quarto-html/popper.min.js"></script>
+<script src="MergeTablePlot-Day4-withpics_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="MergeTablePlot-Day4-withpics_files/libs/quarto-html/anchor.min.js"></script>
+<link href="MergeTablePlot-Day4-withpics_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="MergeTablePlot-Day4-withpics_files/libs/quarto-html/quarto-syntax-highlighting-7b89279ff1a6dce999919e0e67d4d9ec.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="MergeTablePlot-Day4-withpics_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="MergeTablePlot-Day4-withpics_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="MergeTablePlot-Day4-withpics_files/libs/bootstrap/bootstrap-d6a003b94517c951b2d65075d42fb01b.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script src="MergeTablePlot-Day4-withpics_files/libs/kePrint-0.0.1/kePrint.js"></script>
+<link href="MergeTablePlot-Day4-withpics_files/libs/lightable-0.0.1/lightable.css" rel="stylesheet">
 
 
 </head>
@@ -124,7 +124,7 @@ div.csl-indent {
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">March 3, 2026</p>
+      <p class="date">March 2, 2026</p>
     </div>
   </div>
   
@@ -167,7 +167,7 @@ div.csl-indent {
 <h2 class="anchored" data-anchor-id="data">Data</h2>
 <ul>
 <li>Living Conditions Survey <span class="citation" data-cites="lcs_2014_2015">(<a href="#ref-lcs_2014_2015" role="doc-biblioref">Statistics South Africa 2017</a>)</span></li>
-<li>Google Scholar: my <a href="https://scholar.google.com/citations?user=aQuqTmcAAAAJ&amp;hl=en">profile</a></li>
+<li>Others?</li>
 </ul>
 </section>
 <section id="todays-objectives" class="level2">
@@ -183,30 +183,7 @@ div.csl-indent {
 <section id="merge-concepts" class="level2">
 <h2 class="anchored" data-anchor-id="merge-concepts">Merge concepts</h2>
 <ul>
-<li>Basic idea: we want to combine data from numerous sources</li>
-<li>To do so: we must always have some sort of common <em>identifier</em>
-<ul>
-<li>Country and year</li>
-<li>Survey identifier</li>
-<li>Administrative unit</li>
-</ul></li>
 <li>The <a href="https://dplyr.tidyverse.org/reference/mutate-joins.html">commands</a></li>
-</ul>
-</section>
-<section id="merging-to-be-done" class="level2">
-<h2 class="anchored" data-anchor-id="merging-to-be-done">Merging to be done</h2>
-<ul>
-<li>We will use the LCS</li>
-<li>It contains information across numerous files
-<ul>
-<li>Persons</li>
-<li>Households</li>
-<li>Assets</li>
-<li>Expenditures</li>
-<li>…</li>
-</ul></li>
-<li>Too much for one file</li>
-<li>But, we can combine in most any way we want</li>
 </ul>
 </section>
 <section id="read-in-person-data" class="level2">
@@ -402,7 +379,7 @@ div.csl-indent {
 <section id="some-thoughts" class="level2">
 <h2 class="anchored" data-anchor-id="some-thoughts">Some thoughts</h2>
 <ul>
-<li>I have shown many simple tables this semester</li>
+<li>I have shown many simple tables</li>
 <li>What is a table?
 <ul>
 <li>It is a collection of numbers</li>
@@ -412,18 +389,6 @@ div.csl-indent {
 <li>I often use <code>kbl()</code> and <code>kableExtra</code></li>
 <li>Often, I build the tibble with what I want</li>
 <li>But, there are some useful packages</li>
-</ul>
-</section>
-<section id="some-additional-thoughts" class="level2">
-<h2 class="anchored" data-anchor-id="some-additional-thoughts">Some additional thoughts</h2>
-<ul>
-<li>In practice, tables should focus on a particular set of information and be clear
-<ul>
-<li>Focus reader attention</li>
-<li>There should be no confusion</li>
-</ul></li>
-<li>Reducing confusion means clear variable labels, column headings, and relevant notes to allow the reader to understand what is presented without having to read the entire text!</li>
-<li>In what follows, I do not really do all that is necessary to clarify all details… Going forward, we will do more</li>
 </ul>
 </section>
 <section id="using-stargazer-code-fails" class="level2">
@@ -504,10 +469,10 @@ Simple descriptives of continuous data
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb23"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="co"># using "left" data</span></span>
 <span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a><span class="co"># Piping all the way through</span></span>
 <span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>gaz_table <span class="ot">&lt;-</span> pers_house_food_dfl <span class="sc">|&gt;</span></span>
-<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="at">age =</span> q14age, </span>
-<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a>         <span class="at">expenditure =</span> expenditure_inkind, </span>
-<span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a>         <span class="at">income =</span> income_inkind,</span>
-<span id="cb23-7"><a href="#cb23-7" aria-hidden="true" tabindex="-1"></a>         <span class="at">food =</span> food_expend) <span class="sc">|&gt;</span></span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(q14age, </span>
+<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a>         expenditure_inkind, </span>
+<span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a>         income_inkind,</span>
+<span id="cb23-7"><a href="#cb23-7" aria-hidden="true" tabindex="-1"></a>         food_expend) <span class="sc">|&gt;</span></span>
 <span id="cb23-8"><a href="#cb23-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">as.data.frame</span>()</span>
 <span id="cb23-9"><a href="#cb23-9" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb23-10"><a href="#cb23-10" aria-hidden="true" tabindex="-1"></a><span class="fu">stargazer</span>(gaz_table, </span>
@@ -549,7 +514,7 @@ Max
 </tr>
 <tr>
 <td style="text-align:left">
-age
+q14age
 </td>
 <td>
 23,380
@@ -569,7 +534,7 @@ age
 </tr>
 <tr>
 <td style="text-align:left">
-expenditure
+expenditure_inkind
 </td>
 <td>
 23,380
@@ -589,7 +554,7 @@ expenditure
 </tr>
 <tr>
 <td style="text-align:left">
-income
+income_inkind
 </td>
 <td>
 23,380
@@ -609,7 +574,7 @@ income
 </tr>
 <tr>
 <td style="text-align:left">
-food
+food_expend
 </td>
 <td>
 23,094
@@ -691,7 +656,7 @@ St.&nbsp;Dev.
 </tr>
 <tr>
 <td style="text-align:left">
-age
+q14age
 </td>
 <td>
 23,380
@@ -705,7 +670,7 @@ age
 </tr>
 <tr>
 <td style="text-align:left">
-expenditure
+expenditure_inkind
 </td>
 <td>
 23,380
@@ -719,7 +684,7 @@ expenditure
 </tr>
 <tr>
 <td style="text-align:left">
-income
+income_inkind
 </td>
 <td>
 23,380
@@ -733,7 +698,7 @@ income
 </tr>
 <tr>
 <td style="text-align:left">
-food
+food_expend
 </td>
 <td>
 23,094
@@ -779,7 +744,7 @@ Simple descriptives of continuous data
 <span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="at">variable =</span> skim_variable,</span>
 <span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a>         <span class="at">missing =</span> n_missing, </span>
 <span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a>         <span class="at">mean =</span> numeric.mean, </span>
-<span id="cb25-6"><a href="#cb25-6" aria-hidden="true" tabindex="-1"></a>         <span class="at">stdev =</span> numeric.sd, </span>
+<span id="cb25-6"><a href="#cb25-6" aria-hidden="true" tabindex="-1"></a>         <span class="at">sd =</span> numeric.sd, </span>
 <span id="cb25-7"><a href="#cb25-7" aria-hidden="true" tabindex="-1"></a>         <span class="at">median =</span> numeric.p50) <span class="sc">|&gt;</span></span>
 <span id="cb25-8"><a href="#cb25-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">gt</span>(<span class="at">caption =</span> <span class="st">"Simple descriptive statistics for numeric data"</span>) <span class="sc">|&gt;</span></span>
 <span id="cb25-9"><a href="#cb25-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">fmt_number</span>(<span class="at">decimals =</span> <span class="dv">2</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -1240,37 +1205,37 @@ Simple descriptives of continuous data
 <th id="variable" class="gt_col_heading gt_columns_bottom_border gt_left" data-quarto-table-cell-role="th" scope="col">variable</th>
 <th id="missing" class="gt_col_heading gt_columns_bottom_border gt_right" data-quarto-table-cell-role="th" scope="col">missing</th>
 <th id="mean" class="gt_col_heading gt_columns_bottom_border gt_right" data-quarto-table-cell-role="th" scope="col">mean</th>
-<th id="stdev" class="gt_col_heading gt_columns_bottom_border gt_right" data-quarto-table-cell-role="th" scope="col">stdev</th>
+<th id="sd" class="gt_col_heading gt_columns_bottom_border gt_right" data-quarto-table-cell-role="th" scope="col">sd</th>
 <th id="median" class="gt_col_heading gt_columns_bottom_border gt_right" data-quarto-table-cell-role="th" scope="col">median</th>
 </tr>
 </thead>
 <tbody class="gt_table_body">
 <tr class="odd">
-<td class="gt_row gt_left" headers="variable">age</td>
+<td class="gt_row gt_left" headers="variable">q14age</td>
 <td class="gt_row gt_right" headers="missing">0.00</td>
 <td class="gt_row gt_right" headers="mean">49.22</td>
-<td class="gt_row gt_right" headers="stdev">16.11</td>
+<td class="gt_row gt_right" headers="sd">16.11</td>
 <td class="gt_row gt_right" headers="median">49.00</td>
 </tr>
 <tr class="even">
-<td class="gt_row gt_left" headers="variable">expenditure</td>
+<td class="gt_row gt_left" headers="variable">expenditure_inkind</td>
 <td class="gt_row gt_right" headers="missing">0.00</td>
 <td class="gt_row gt_right" headers="mean">89,080.81</td>
-<td class="gt_row gt_right" headers="stdev">137,486.27</td>
+<td class="gt_row gt_right" headers="sd">137,486.27</td>
 <td class="gt_row gt_right" headers="median">43,218.57</td>
 </tr>
 <tr class="odd">
-<td class="gt_row gt_left" headers="variable">income</td>
+<td class="gt_row gt_left" headers="variable">income_inkind</td>
 <td class="gt_row gt_right" headers="missing">0.00</td>
 <td class="gt_row gt_right" headers="mean">116,166.12</td>
-<td class="gt_row gt_right" headers="stdev">196,563.37</td>
+<td class="gt_row gt_right" headers="sd">196,563.37</td>
 <td class="gt_row gt_right" headers="median">48,855.42</td>
 </tr>
 <tr class="even">
-<td class="gt_row gt_left" headers="variable">food</td>
+<td class="gt_row gt_left" headers="variable">food_expend</td>
 <td class="gt_row gt_right" headers="missing">286.00</td>
 <td class="gt_row gt_right" headers="mean">12,112.65</td>
-<td class="gt_row gt_right" headers="stdev">11,281.04</td>
+<td class="gt_row gt_right" headers="sd">11,281.04</td>
 <td class="gt_row gt_right" headers="median">9,168.36</td>
 </tr>
 </tbody>
@@ -1292,7 +1257,7 @@ Simple descriptives of continuous data
 <span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="at">variable =</span> skim_variable,</span>
 <span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a>         <span class="at">missing =</span> n_missing, </span>
 <span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a>         <span class="at">mean =</span> numeric.mean, </span>
-<span id="cb26-6"><a href="#cb26-6" aria-hidden="true" tabindex="-1"></a>         <span class="at">stdev =</span> numeric.sd, </span>
+<span id="cb26-6"><a href="#cb26-6" aria-hidden="true" tabindex="-1"></a>         <span class="at">sd =</span> numeric.sd, </span>
 <span id="cb26-7"><a href="#cb26-7" aria-hidden="true" tabindex="-1"></a>         <span class="at">median =</span> numeric.p50) <span class="sc">|&gt;</span></span>
 <span id="cb26-8"><a href="#cb26-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">kbl</span>(<span class="at">caption =</span> <span class="st">"Simple descriptive statistics for numeric data"</span>,</span>
 <span id="cb26-9"><a href="#cb26-9" aria-hidden="true" tabindex="-1"></a>      <span class="at">digits =</span> <span class="dv">2</span>) <span class="sc">|&gt;</span></span>
@@ -1312,34 +1277,34 @@ Simple descriptives of continuous data
 <th style="text-align: left;" data-quarto-table-cell-role="th">variable</th>
 <th style="text-align: right;" data-quarto-table-cell-role="th">missing</th>
 <th style="text-align: right;" data-quarto-table-cell-role="th">mean</th>
-<th style="text-align: right;" data-quarto-table-cell-role="th">stdev</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">sd</th>
 <th style="text-align: right;" data-quarto-table-cell-role="th">median</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
-<td style="text-align: left;">age</td>
+<td style="text-align: left;">q14age</td>
 <td style="text-align: right;">0</td>
 <td style="text-align: right;">49.22</td>
 <td style="text-align: right;">16.11</td>
 <td style="text-align: right;">49.00</td>
 </tr>
 <tr class="even">
-<td style="text-align: left;">expenditure</td>
+<td style="text-align: left;">expenditure_inkind</td>
 <td style="text-align: right;">0</td>
 <td style="text-align: right;">89080.81</td>
 <td style="text-align: right;">137486.27</td>
 <td style="text-align: right;">43218.57</td>
 </tr>
 <tr class="odd">
-<td style="text-align: left;">income</td>
+<td style="text-align: left;">income_inkind</td>
 <td style="text-align: right;">0</td>
 <td style="text-align: right;">116166.12</td>
 <td style="text-align: right;">196563.37</td>
 <td style="text-align: right;">48855.42</td>
 </tr>
 <tr class="even">
-<td style="text-align: left;">food</td>
+<td style="text-align: left;">food_expend</td>
 <td style="text-align: right;">286</td>
 <td style="text-align: right;">12112.65</td>
 <td style="text-align: right;">11281.04</td>
@@ -1396,7 +1361,7 @@ Simple descriptives of continuous data
 <span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="at">variable =</span> skim_variable,</span>
 <span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a>         <span class="at">missing =</span> n_missing, </span>
 <span id="cb28-5"><a href="#cb28-5" aria-hidden="true" tabindex="-1"></a>         <span class="at">mean =</span> numeric.mean, </span>
-<span id="cb28-6"><a href="#cb28-6" aria-hidden="true" tabindex="-1"></a>         <span class="at">stdev =</span> numeric.sd, </span>
+<span id="cb28-6"><a href="#cb28-6" aria-hidden="true" tabindex="-1"></a>         <span class="at">sd =</span> numeric.sd, </span>
 <span id="cb28-7"><a href="#cb28-7" aria-hidden="true" tabindex="-1"></a>         <span class="at">median =</span> numeric.p50) <span class="sc">|&gt;</span></span>
 <span id="cb28-8"><a href="#cb28-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">kbl</span>(<span class="at">caption =</span> <span class="st">"Simple descriptive statistics for dummy data"</span>,</span>
 <span id="cb28-9"><a href="#cb28-9" aria-hidden="true" tabindex="-1"></a>      <span class="at">digits =</span> <span class="dv">2</span>) <span class="sc">|&gt;</span></span>
@@ -1416,7 +1381,7 @@ Simple descriptives of continuous data
 <th style="text-align: left;" data-quarto-table-cell-role="th">variable</th>
 <th style="text-align: right;" data-quarto-table-cell-role="th">missing</th>
 <th style="text-align: right;" data-quarto-table-cell-role="th">mean</th>
-<th style="text-align: right;" data-quarto-table-cell-role="th">stdev</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">sd</th>
 <th style="text-align: right;" data-quarto-table-cell-role="th">median</th>
 </tr>
 </thead>
@@ -1541,22 +1506,8 @@ Simple descriptives of continuous data
 </section>
 <section id="plots" class="level1">
 <h1>Plots</h1>
-<section id="what-is-a-plot" class="level2">
-<h2 class="anchored" data-anchor-id="what-is-a-plot">What is a plot?</h2>
-<ul>
-<li>Kind of a dumb question?</li>
-<li>It must convey information
-<ul>
-<li>Clearly</li>
-<li>Effectively</li>
-<li>Be entirely readable and contained</li>
-</ul></li>
-<li>Recall: a picture is supposed to be <em>worth a thousand words</em></li>
-<li>So, use wisely</li>
-</ul>
-</section>
-<section id="plotting-in-r" class="level2">
-<h2 class="anchored" data-anchor-id="plotting-in-r">Plotting in R</h2>
+<section id="thinking-about-plots" class="level2">
+<h2 class="anchored" data-anchor-id="thinking-about-plots">Thinking about plots</h2>
 <ul>
 <li>Plotting in base R is actually pretty easy, and I do it fairly often</li>
 <li>R thinks in ‘layers’
@@ -1599,7 +1550,7 @@ Simple descriptives of continuous data
 <div class="cell-output-display">
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
-<p><img src="DataTypes_Day3_withpics_files/figure-html/bxplot-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" style="width:75.0%"></p>
+<p><img src="MergeTablePlot-Day4-withpics_files/figure-html/bxplot-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" style="width:75.0%"></p>
 </figure>
 </div>
 </div>
@@ -1630,7 +1581,7 @@ Simple descriptives of continuous data
 <div class="cell-output-display">
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
-<p><img src="DataTypes_Day3_withpics_files/figure-html/bxplot_pretty-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" style="width:75.0%"></p>
+<p><img src="MergeTablePlot-Day4-withpics_files/figure-html/bxplot_pretty-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" style="width:75.0%"></p>
 </figure>
 </div>
 </div>
@@ -1679,7 +1630,7 @@ Simple descriptives of continuous data
 <div class="cell-output-display">
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
-<p><img src="DataTypes_Day3_withpics_files/figure-html/scatter1-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" style="width:75.0%"></p>
+<p><img src="MergeTablePlot-Day4-withpics_files/figure-html/scatter1-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" style="width:75.0%"></p>
 </figure>
 </div>
 </div>
@@ -1710,7 +1661,7 @@ Simple descriptives of continuous data
 <div class="cell-output-display">
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
-<p><img src="DataTypes_Day3_withpics_files/figure-html/scatter2-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" style="width:75.0%"></p>
+<p><img src="MergeTablePlot-Day4-withpics_files/figure-html/scatter2-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" style="width:75.0%"></p>
 </figure>
 </div>
 </div>
@@ -1746,7 +1697,7 @@ Simple descriptives of continuous data
 <div class="cell-output-display">
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
-<p><img src="DataTypes_Day3_withpics_files/figure-html/scatter3-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" style="width:75.0%"></p>
+<p><img src="MergeTablePlot-Day4-withpics_files/figure-html/scatter3-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" style="width:75.0%"></p>
 </figure>
 </div>
 </div>
@@ -1785,26 +1736,15 @@ Simple descriptives of continuous data
 <div class="cell-output-display">
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
-<p><img src="DataTypes_Day3_withpics_files/figure-html/scatter4-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" style="width:75.0%"></p>
+<p><img src="MergeTablePlot-Day4-withpics_files/figure-html/scatter4-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" style="width:75.0%"></p>
 </figure>
 </div>
 </div>
 </div>
 </section>
 </section>
-<section id="using-text" class="level1">
-<h1>Using Text</h1>
-<section id="a-question" class="level2">
-<h2 class="anchored" data-anchor-id="a-question">A question</h2>
-<ul>
-<li>How might we display qualitative information?</li>
-<li>Often, that is in words</li>
-<li>We see it in the news, in SARB reports and even speeches</li>
-<li>That wording conveys information, but what?</li>
-<li>Below, we will look at the words I have used in publication titles…</li>
-<li>Maybe, we can learn a bit about me that way, maybe not.</li>
-</ul>
-</section>
+<section id="a-sidestep" class="level1">
+<h1>A Sidestep</h1>
 <section id="some-different-packages" class="level2">
 <h2 class="anchored" data-anchor-id="some-different-packages">Some different packages</h2>
 <ul>
@@ -1877,7 +1817,7 @@ Simple descriptives of continuous data
 <div class="cell-output-display">
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
-<p><img src="DataTypes_Day3_withpics_files/figure-html/scholar3-1.png" class="img-fluid figure-img" style="width:75.0%"></p>
+<p><img src="MergeTablePlot-Day4-withpics_files/figure-html/scholar3-1.png" class="img-fluid figure-img" style="width:75.0%"></p>
 <figcaption>My publications word cloud</figcaption>
 </figure>
 </div>

@@ -14,3 +14,11 @@ janitor
 haven
 knitr
 kableExtra
+stargazer
+gt
+ggthemes
+scholar
+NLP
+tm
+RColorBrewer
+wordcloud
