@@ -10,7 +10,7 @@
   <meta name="generator" content="quarto-1.8.25">
 
   <meta name="author" content="Prof SF Koch">
-  <meta name="dcterms.date" content="2026-03-09">
+  <meta name="dcterms.date" content="2026-03-11">
   <title>Probability and Distribution</title>
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -225,7 +225,7 @@ Prof SF Koch
 </div>
 </div>
 
-  <p class="date">2026-03-09</p>
+  <p class="date">2026-03-11</p>
 </section>
 <section id="some-background" class="slide level2">
 <h2>Some background</h2>
@@ -426,7 +426,7 @@ Prof SF Koch
 <ol start="2" type="1">
 <li>Three objects to identify <span class="math inline">\(A \cap B\)</span>
 <ol type="a">
-<li><span class="math inline">\(A \cap B = A \cup B - A \cup \sim B + \sim A \cup B\)</span></li>
+<li><span class="math inline">\(A \cap B = A \cup B - A \cup \sim B - \sim A \cup B\)</span></li>
 <li>The set of <span class="math inline">\(A\)</span> outside of <span class="math inline">\(B\)</span></li>
 <li>The set of <span class="math inline">\(B\)</span> outside of <span class="math inline">\(A\)</span></li>
 <li>The joint set</li>
@@ -452,12 +452,12 @@ Prof SF Koch
 <li>What is the probability of a reshuffle and electricity improving?
 <ol type="a">
 <li>This is <span class="math inline">\(Pr(A,\sim B)\)</span></li>
-<li><span class="math inline">\(A = A \cup B + A \cup \sim B\)</span></li>
-<li><span class="math inline">\(A \cup \sim B = A - A \cup B\)</span></li>
-<li><span class="math inline">\(Pr(A \cup \sim B) = Pr(A) - Pr(A \cup B)\)</span></li>
-<li><span class="math inline">\(Pr(A \cup \sim B)\)</span> = 0.3 - 0.2 = 0.1</li>
+<li><span class="math inline">\(A = A \cap B + A \cap \sim B\)</span></li>
+<li><span class="math inline">\(A \cap \sim B = A - A \cap B\)</span></li>
+<li><span class="math inline">\(Pr(A \cap \sim B) = Pr(A) - Pr(A \cap B)\)</span></li>
+<li><span class="math inline">\(Pr(A \cap \sim B)\)</span> = 0.3 - 0.2 = 0.1</li>
 </ol></li>
-<li>Why did we go from <span class="math inline">\(A \cup \sim B\)</span> to <span class="math inline">\(Pr(A \cup \sim B)\)</span>?</li>
+<li>Why did we go from <span class="math inline">\(A \cap \sim B\)</span> to <span class="math inline">\(Pr(A \cap \sim B)\)</span>?</li>
 </ol>
 </section>
 <section id="finding-some-results-2" class="slide level2">
@@ -476,10 +476,10 @@ Prof SF Koch
 <li>What is probability of minister staying and electricity not improving
 <ol type="a">
 <li>This is <span class="math inline">\(Pr(B,\sim A)\)</span></li>
-<li><span class="math inline">\(B = B \cup A + B \cup \sim A\)</span></li>
-<li><span class="math inline">\(B \cup \sim A = B - B \cup A\)</span></li>
-<li><span class="math inline">\(Pr(B \cup \sim A) = Pr(B) - Pr(A \cup B)\)</span></li>
-<li><span class="math inline">\(Pr(B \cup \sim A)\)</span> = 0.6 - 0.2 = 0.4</li>
+<li><span class="math inline">\(B = B \cap A + B \cap \sim A\)</span></li>
+<li><span class="math inline">\(B \cap \sim A = B - B \cap A\)</span></li>
+<li><span class="math inline">\(Pr(B \cap \sim A) = Pr(B) - Pr(A \cap B)\)</span></li>
+<li><span class="math inline">\(Pr(B \cap \sim A)\)</span> = 0.6 - 0.2 = 0.4</li>
 </ol></li>
 </ol>
 </section>
@@ -601,15 +601,15 @@ Pr(A|B) = \frac{Pr(B|A)Pr(A)}{Pr(B)}
 <ol type="1">
 <li>Recall
 <ol type="a">
-<li><span class="math inline">\(A = A \cup B + A \cup \sim B\)</span></li>
-<li>Similarly, <span class="math inline">\(B = B \cup A + B \cup \sim A\)</span></li>
+<li><span class="math inline">\(A = A \cap B + A \cap \sim B\)</span></li>
+<li>Similarly, <span class="math inline">\(B = B \cap A + B \cap \sim A\)</span></li>
 </ol></li>
 <li>So, we can substitute out Pr(A) and Pr(B)</li>
 </ol>
 <p><span class="math display">\[
 \begin{aligned}
 Pr(A|B) &amp;= \frac{Pr(B|A)Pr(A)}{Pr(B)} \\
-&amp;= \frac{Pr(B|A)Pr(A)}{Pr(B \cup A) + Pr(B \cup \sim A)}\\
+&amp;= \frac{Pr(B|A)Pr(A)}{Pr(B \cap A) + Pr(B \cap \sim A)}\\
 &amp;= \frac{Pr(B|A)Pr(A)}{Pr(B,A) + Pr(B,\sim A)} \\
 &amp;= \frac{Pr(B|A)Pr(A)}{Pr(B|A)Pr(A) + Pr(B|\sim A)Pr(\sim A)}
 \end{aligned}
@@ -690,17 +690,24 @@ Pr(A|B) &amp;= \frac{Pr(B|A)Pr(A)}{Pr(B|A)Pr(A) + Pr(B|\sim A)Pr(\sim A)} \\
 <li>In Bayes, we often call these priors</li>
 <li>Prior information or probabilities</li>
 </ol></li>
-<li><p>New information: <span class="math inline">\(Pr(A_3) = 0\)</span></p></li>
+<li><p>New information: <span class="math inline">\(Pr(D_3) = 0\)</span></p></li>
 <li><p>So, <span class="math inline">\(Pr(D_1) = 1/3\)</span> and <span class="math inline">\(Pr(\sim D_1) = 2/3\)</span></p></li>
 <li><p>BUT, <span class="math inline">\(\sim D_1\)</span> is now just <span class="math inline">\(D_2\)</span></p></li>
 <li><p>Switch!</p></li>
 </ol>
 </section>
-<section id="answering-with-bayes-law-door-1" class="slide level2">
-<h2>Answering with Bayes’ Law: Door 1</h2>
+<section id="answering-with-bayes-law-i" class="slide level2">
+<h2>Answering with Bayes’ Law I</h2>
+<ul>
+<li>Prize behind a door, given shown a door.</li>
+<li><span class="math inline">\(Pr(D_i|D_j)\)</span></li>
+</ul>
 <p><span class="math display">\[
 Pr(D_1|D_3) = \frac{Pr(D_3|D_1)Pr(D_1)}{Pr(D_3)}
 \]</span></p>
+</section>
+<section id="answering-with-bayes-law-ii" class="slide level2">
+<h2>Answering with Bayes’ Law II</h2>
 <p>What is <span class="math inline">\(Pr(D_3|D_1)\)</span>?</p>
 <ul>
 <li>Recall, <span class="math inline">\(D_1\)</span> chosen.</li>
@@ -709,8 +716,8 @@ Pr(D_1|D_3) = \frac{Pr(D_3|D_1)Pr(D_1)}{Pr(D_3)}
 <li>So, <span class="math inline">\(Pr(D_3|D_1)Pr(D_1) = 1/2 \times 1/3 = 1/6\)</span></li>
 </ul>
 </section>
-<section id="answering-with-bayes-law-door-2" class="slide level2">
-<h2>Answering with Bayes’ Law: Door 2</h2>
+<section id="answering-with-bayes-law-iii" class="slide level2">
+<h2>Answering with Bayes’ Law III</h2>
 <p><span class="math display">\[
 Pr(D_2|D_3) = \frac{Pr(D_3|D_2)Pr(D_2)}{Pr(D_3)}
 \]</span></p>
@@ -718,6 +725,7 @@ Pr(D_2|D_3) = \frac{Pr(D_3|D_2)Pr(D_2)}{Pr(D_3)}
 <ul>
 <li>There are only two doors to be revealed: 2 or 3.</li>
 <li>After <span class="math inline">\(D_3\)</span> is revealed, prize is not in <span class="math inline">\(D_3\)</span></li>
+<li>But, if <span class="math inline">\(D_2\)</span> was shown, it would imply <span class="math inline">\(D_3\)</span>!</li>
 <li><span class="math inline">\(Pr(D_3|D_2) = 1\)</span></li>
 <li>So, <span class="math inline">\(Pr(D_3|D_2)Pr(D_2) = 1 \times 1/3 = 1/3\)</span></li>
 </ul>

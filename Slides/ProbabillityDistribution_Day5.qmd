@@ -207,7 +207,7 @@ set.seed(42) # randomness to get same results
 ## More Concepts and Maths II
 
 2. Three objects to identify $A \cap B$
-    a. $A \cap B = A \cup B - A \cup \sim B + \sim A \cup B$
+    a. $A \cap B = A \cup B - A \cup \sim B - \sim A \cup B$
     a. The set of $A$ outside of $B$
     a. The set of $B$ outside of $A$
     a. The joint set
@@ -229,12 +229,12 @@ a. Assume: $Pr(A) = 0.3$, $Pr(B) = 0.6$ and $Pr(A,B) = 0.2$
 
 1. What is the probability of a reshuffle and electricity improving?
     a. This is $Pr(A,\sim B)$
-    a. $A = A \cup B + A \cup \sim B$
-    a. $A \cup \sim B = A - A \cup B$
-    a. $Pr(A \cup \sim B) = Pr(A) - Pr(A \cup B)$
-    a. $Pr(A \cup \sim B)$ = 0.3 - 0.2 = 0.1
+    a. $A = A \cap B + A \cap \sim B$
+    a. $A \cap \sim B = A - A \cap B$
+    a. $Pr(A \cap \sim B) = Pr(A) - Pr(A \cap B)$
+    a. $Pr(A \cap \sim B)$ = 0.3 - 0.2 = 0.1
 
-1. Why did we go from  $A \cup \sim B$ to $Pr(A \cup \sim B)$?
+1. Why did we go from  $A \cap \sim B$ to $Pr(A \cap \sim B)$?
 
 ## Finding Some Results 2
 
@@ -246,10 +246,10 @@ a. Assume: $Pr(A) = 0.3$, $Pr(B) = 0.6$ and $Pr(A,B) = 0.2$
 
  4. What is probability of minister staying and electricity not improving 
     a. This is $Pr(B,\sim A)$
-    a. $B = B \cup A + B \cup \sim A$
-    a. $B \cup \sim A = B - B \cup A$
-    a. $Pr(B \cup \sim A) = Pr(B) - Pr(A \cup B)$
-    a. $Pr(B \cup \sim A)$ = 0.6 - 0.2 = 0.4
+    a. $B = B \cap A + B \cap \sim A$
+    a. $B \cap \sim A = B - B \cap A$
+    a. $Pr(B \cap \sim A) = Pr(B) - Pr(A \cap B)$
+    a. $Pr(B \cap \sim A)$ = 0.6 - 0.2 = 0.4
 
 ## Finding Some Results 4
     
@@ -347,15 +347,15 @@ $$
 ## Additional Maths
 
 1. Recall
-    a. $A = A \cup B + A \cup \sim B$
-    a. Similarly, $B = B \cup A + B \cup \sim A$
+    a. $A = A \cap B + A \cap \sim B$
+    a. Similarly, $B = B \cap A + B \cap \sim A$
     
 1. So, we can substitute out Pr(A) and Pr(B)
 
 $$ 
 \begin{aligned}
 Pr(A|B) &= \frac{Pr(B|A)Pr(A)}{Pr(B)} \\
- &= \frac{Pr(B|A)Pr(A)}{Pr(B \cup A) + Pr(B \cup \sim A)}\\
+ &= \frac{Pr(B|A)Pr(A)}{Pr(B \cap A) + Pr(B \cap \sim A)}\\
  &= \frac{Pr(B|A)Pr(A)}{Pr(B,A) + Pr(B,\sim A)} \\
  &= \frac{Pr(B|A)Pr(A)}{Pr(B|A)Pr(A) + Pr(B|\sim A)Pr(\sim A)}
 \end{aligned}
@@ -426,7 +426,7 @@ a. Question: Should you?
     a. In Bayes, we often call these priors
     a. Prior information or probabilities
     
-1. New information: $Pr(A_3) = 0$
+1. New information: $Pr(D_3) = 0$
 
 1. So, $Pr(D_1) = 1/3$ and $Pr(\sim D_1) = 2/3$
 
@@ -435,12 +435,16 @@ a. Question: Should you?
 1. Switch!
 
 
-## Answering with Bayes' Law: Door 1
+## Answering with Bayes' Law I
 
+- Prize behind a door, given shown a door.
+- $Pr(D_i|D_j)$
 
 $$
 Pr(D_1|D_3) = \frac{Pr(D_3|D_1)Pr(D_1)}{Pr(D_3)} 
 $$
+
+## Answering with Bayes' Law II
 
 What is $Pr(D_3|D_1)$? 
 
@@ -449,7 +453,7 @@ What is $Pr(D_3|D_1)$?
 - $Pr(D_3|D_1) = 1/2$
 - So, $Pr(D_3|D_1)Pr(D_1) = 1/2 \times 1/3 = 1/6$
 
-## Answering with Bayes' Law: Door 2
+## Answering with Bayes' Law III
 
 $$
 Pr(D_2|D_3) = \frac{Pr(D_3|D_2)Pr(D_2)}{Pr(D_3)} 
@@ -459,6 +463,7 @@ What is $Pr(D_3|D_2)$?
 
 - There are only two doors to be revealed: 2 or 3.
 - After $D_3$ is revealed, prize is not in $D_3$
+- But, if $D_2$ was shown, it would imply $D_3$!
 - $Pr(D_3|D_2) = 1$
 - So, $Pr(D_3|D_2)Pr(D_2) = 1 \times 1/3 = 1/3$
 
