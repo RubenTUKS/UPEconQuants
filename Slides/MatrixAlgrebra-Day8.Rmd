@@ -1,0 +1,781 @@
+---
+title: "Matrix Algebra"
+subtitle: "EKT 813"
+author: "Prof SF Koch"
+date: "today"
+format: 
+  revealjs:
+    theme: solarized
+knitr:
+  opts_chunk:
+    echo: true
+    eval: true
+    cache: true
+    concordance: true
+    autodep: true
+    comment: "#>"
+    dpi: 300
+    fig.align: "center"
+    out.width: 75%
+editor: source
+bibliography: 
+  - module.bib
+  - software-refs.bib
+  - data-slides.bib
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(concordance=TRUE,
+               echo=TRUE,
+               dev='tikz',
+               tidy=FALSE,
+               cache=TRUE,
+               autodep=TRUE,
+               message=FALSE,
+               warning=FALSE,
+               results='hide',
+               size='scriptsize',
+               comment=NA,
+               out.width='.75\\textwidth',
+               fig.show='hold')
+
+# Defining text size in various chunks 
+def.chunk.hook  <- knitr::knit_hooks$get("chunk")
+knitr::knit_hooks$set(chunk = function(x, options) {
+  x <- def.chunk.hook(x, options)
+  ifelse(options$size != "normalsize", paste0("\\", options$size,"\n\n", x, "\n\n \\normalsize"), x)
+})
+
+## libraries
+library(kableExtra)
+knitr::opts_knit$set(kable.force.latex = TRUE)
+library(tidyverse)
+#library(xtable)
+#options(xtable.comment = FALSE)
+
+set.seed(42) # randomness to get same results
+```
+
+## Today's objectives
+
+1. Review most relevant matrix algebra components
+
+1. Use R for calculations/examples
+
+1. This information can be found in most metrics texts
+    a. @wooldridge
+    a. @camerontrivedi
+    a. @cunningham2021causal
+
+
+## Matrixes in Latex
+
+`` \begin{bmatrix} 3 & 4 \\ 2 & 7 \end{bmatrix}``
+
+$$
+\begin{bmatrix} 3 & 4 \\ 2 & 7 \end{bmatrix}
+$$
+
+`` \begin{pmatrix} 3 & 4 \\ 2 & 7 \end{pmatrix} ``
+
+$$
+\begin{pmatrix} 3 & 4 \\ 2 & 7 \end{pmatrix}
+$$
+
+## Matrix without brackets in Latex
+
+`` \begin{matrix} 3 & 4 \\ 2 & 7 \end{matrix} ``
+
+$$
+\begin{matrix} 3 & 4 \\ 2 & 7 \end{matrix}
+$$
+
+# Vectors and Matrixes
+
+    
+## Matrix definition
+
+1. Matrix - rectangular array of information in rows and columns
+    a. the first subscript is row
+    a. the second is column
+
+$$
+A = \begin{bmatrix}
+a_{11} & a_{12} \\
+a_{21} & a_{22}
+\end{bmatrix}
+$$
+
+## Matrix in R
+
+2. In R
+    a. We use square brackets to refer to rows and columns
+    a. first is row, second is column
+
+$$
+A = \begin{pmatrix}
+A[1,1] & A[1,2] \\
+A[2,1] & A[2,2]
+\end{pmatrix}
+$$
+
+## Special features in R
+
+1. Can refer to all columns in a row 
+
+$$
+A[1,] = \begin{pmatrix}
+A[1,1] & A[1,2] 
+\end{pmatrix}
+$$
+
+2. Can refer to all rows in a column 
+
+$$
+A[,2] = \begin{pmatrix}
+A[1,2] \\ A[2,2] 
+\end{pmatrix}
+$$
+
+## Some additional details
+
+1. Matrix
+    a. Generically, there can be $r$ rows and $c$ columns
+    a. Thus, order of matrix is $r \times c$
+    
+1. Vector
+    a. Generically, either one row or one column
+    a. Thus, $r \times 1$ is order $r$
+    a. $1 \times c$ has order $c$
+
+## Scalars
+    
+1. Scalar 
+    a. Only one row and one column
+    a. Could call it order 1 - few do
+    
+1. Scalars and vectors are special cases
+    
+
+## Matrix transpose
+
+1. Transpose: **switches** rows and columns: 
+    a. $a_{ij}' \rightarrow a_{ji}$
+    a. order $r \times c$ becomes order $c \times r$
+    a. Intuitively, $(A')' = A$, switching back to original
+
+## Transpose example 
+
+2. Given $B$, find $B'$
+$$
+B = \begin{bmatrix}
+1 & 2 & 3 \\
+4 & 5 & 6
+\end{bmatrix}
+$$
+
+$$
+B' = \begin{bmatrix}
+1 & 4 \\
+2 & 5 \\
+3 & 6
+\end{bmatrix}
+$$
+
+## Some special matrixes
+
+1. If $A' = A$
+    a. $A$ must be *square* - same rows and columns
+    a. $A$ must be *symmetric* - around the diagonal
+
+1. Diagonal? 
+    a. Top-left to bottom-right
+    a. *diag*$(A) = \begin{pmatrix} a_{11} & a_{22} \end{pmatrix}$
+    a. Also, *diag*$(a_{11},a_{22})$
+
+## More special matrixes
+
+1. Identity Matrix
+    a. Square and symmetric
+    a. $I = \textit{diag}(1,1,\dots,1)$
+    
+1. Equal Matrixes
+    a. all elements the same
+    a. $A=B$ iff $a_{ij} = b_{ij}$ $\forall$ $i \in r$ and $\forall$ $j \in c$
+    a. Also, if $A=B$ and $B=C$, then $A=C$
+    
+# Matrix Math
+
+## Addition and subtraction
+
+1. Addition and subtraction are element by element
+    a. Assuming $C=A \pm B$
+    a. $A$ and $B$ are of the same order!
+    a. $c_{ij} = a_{ij} \pm b_{ij}$
+    
+1. Somewhat familiar rules...
+    a. Commutative: $A + B = B + A$, $A - B = -B + A$
+    a. Associative: $(A+B)+C = A+(B+C)$, $(A-B)-C = A-(B+C)$
+    a. Transpose distributive: $(A+B)' = (A' + B')$
+    
+## Scalar multiplication
+
+1. Previously, we implied scalar multiplication using $-1$
+
+1. Scalar multiplication: all elements by that scalar
+    a. if $C=(-1)\times A$, then $c_{ij} = -a_{ij}$
+    a. if $C= k A$, then $c_{ij} = ka_{ij}$
+    a. Also, $kA=Ak$, commutative holds for scalar
+
+## Matrix multiplication
+
+1. Requires conformable matrixes
+1.  It is the multiplicative sum across rows and down columns
+1. if $C=AB$, then $c_{ij} = \sum_{k=1}^p a_{ik}b_{kj}$
+1. Conformable: number of columns in $A$ must equal rows in $B$.
+
+## Multiplication example
+
+1. Find AB, if it exists
+1. Can you find BA? Does it exist? 
+1. Does BA=AB? 
+1. In other words, does commutative law hold?
+
+$$ 
+A = \begin{bmatrix}
+1 & 2 & 3 \\
+4 & 5 & 6
+\end{bmatrix}
+\qquad
+B = \begin{bmatrix}
+2 & 1 \\
+3 & 2 \\
+1 & 1
+\end{bmatrix}
+$$
+
+
+## Some matrix math in R
+
+```{r mat1, results="asis"}
+
+A <- matrix(c(1,2,3,4,5,6),nrow=2,byrow=T)
+B <- matrix(c(2,1,3,2,1,1),nrow=3,byrow=T)
+
+kable(A%*%B)
+
+```
+
+## Another look in R
+
+```{r mat2, results="asis"}
+
+# This also conformable, but different answer
+
+kable(B%*%A)
+
+```
+
+## Add in an identity matrix
+
+```{r mat3, results="asis"}
+
+# This also conformable, but different answer
+
+I2 <- diag(2)
+I3 <- diag(3)
+
+kable((A%*%B)%*%I2)
+kable(I3%*%(B%*%A))
+
+
+```
+
+## Further consideration
+    
+1. Laws that Hold
+    a. Commutative: $A(B+C) = AB + AC$
+    a. Associative: $A(BC) = (AB)C$
+    a. Assuming these products exist...
+
+1. Transposes and Multiplication
+    a. $(AB)' = B'A'$
+    a. $(ABC)'=C'B'A'$
+
+## Basics in R: Are they the same as should be?
+
+```{r mat4, dependson="mat1", results="asis"}
+
+# original matrix
+kable(A%*%B)
+
+# transpose
+kable(t(A%*%B))
+
+# Transpose multiple
+kable(t(B)%*%t(A))
+
+```
+
+    
+## Issues to consider
+
+1. A null matrix $\mathbf{0}$ has all elements equal to $0$
+
+1. Just because $AB=\mathbf{0}$, does not mean $A$ or $B$ are $\mathbf{0}$
+
+1. Consider symmetric matrixes: 
+    a. $A=A'$ and $B=B'$
+    a. $(AB)' = B'A' = BA \neq AB$ (generally)
+
+## A few more issues
+
+4. Consider symmetric $n$ order matrix $A$ and any $m \times n$ order matrix $B$
+    a. $B'AB$ is symmetric...
+    a. $(B'AB)'=B'A'(B')'=B'A'B=B'AB$
+    a. Follow the transpose and multiplication rules
+
+## R again...
+
+```{r sym-mat1, dependson="mat1", results = "asis"}
+
+# symmetric A matrix
+symA <- matrix(c(1,2,2,1),nrow=2,byrow=T)
+kable(symA)
+
+# Note "B" above is already 3x2 matrix,
+# So, switching B'(symA)B to be B(symA)B'
+# thus, they are conformable
+# symmetric? yep!
+BABprime <- B%*%symA%*%t(B)
+kable(BABprime)
+
+```
+
+
+## Vector multiplication
+
+1. Inner Product:
+    a. requires row vector and column vector of same 'order'
+    a. Suppose $a=\begin{bmatrix} 1 & 2 & 2 \end{bmatrix}'$, then $a'a = 1+4+4 =9$
+
+1. **Orthogonal**: If $f'g=0$, then $f$ and $g$ are orthogonal (where they are conformable vectors for taking the inner product)
+
+1. **Euclidean vector norm**: square root of the inner product
+
+# Square Matrix Math
+
+## Trace
+
+1. Limiting attention to square matrixes
+    a. Trace is the sum along the diagonal
+    a. $tr(A) = \sum_{i=1}^n a_{ii}$
+
+## Trace rules
+
+1. $tr(A) = tr(A')$, the diagonal is not affected
+1. $tr(kA) = ktr(A)$
+    a. The trace is a sum
+    a. We can 'pull' constants out of a sum
+1. $tr(I_n) = n$, the sum of $n$ 1s is $n$
+1. $tr(A \pm B) = tr(A) \pm tr(B)$
+1. $tr(AB) = tr(BA)$, assuming both products exist and the resulting matrix is square
+1. $tr(AA') = tr(A'A) = \sum_{i=1}^n \sum_{j=1}^n a_{ij}^2$
+    
+## In R
+
+```{r sym-mat2, dependson="sym-mat1", results ="asis"}
+
+# to get the trace
+sum(diag(symA))
+
+# define a function
+trace <- function(A){
+  sum(diag(A))
+}
+
+# use the function
+trace(BABprime)
+```
+
+
+## Determinant definition
+
+1. Determinant is a scalar 
+    a. We use *det* $A$ or $|A|$
+    a. The sum of all signed products of the elements selected from the matrix, so that one and only one element comes from each row and one and only one element comes from each column, and the sign is positive if the element subscript permutation is positive and negative, otherwise...
+    a. What???
+  
+## A simple $2 \times 2$ matrix     
+
+
+$$
+A = \begin{bmatrix}
+a_{11} & a_{12} \\
+a_{21} & a_{22}
+\end{bmatrix}
+\qquad
+|A| = a_{11}a_{22} - a_{12}a_{21}
+$$
+
+1. What are the signs here?
+1. How does it relate to rows/column combinations?
+1. How does that relate to the definition
+
+## Determinant: $3 \times 3$
+
+$$
+A = \begin{bmatrix}
+a_{11} & a_{12} & a_{13} \\
+a_{21} & a_{22} & a_{23} \\
+a_{31} & a_{32} & a_{33}
+\end{bmatrix}
+$$
+
+$$
+|A| = a_{11} \begin{vmatrix} a_{22} & a_{23} \\ a_{32} & a_{33} \end{vmatrix} 
+    - a_{12} \begin{vmatrix} a_{21} & a_{23} \\ a_{31} & a_{33} \end{vmatrix}
+    + a_{13} \begin{vmatrix} a_{21} & a_{22} \\ a_{31} & a_{32} \end{vmatrix}
+$$
+
+1. What are the signs here?
+1. How does it relate to rows/column combinations?
+1. How does that relate to the definition
+
+## Some determinant work in R
+
+```{r sym-mat3, dependson="sym-mat1", results = "asis"}
+
+# determinant of symmetric A
+det(symA)
+
+# Did you expect this result?
+det(BABprime)
+
+# Why is this 0??
+```
+
+
+## Determinant: $n \times n$
+
+1. From the above, clearly messy
+
+1. The basic idea can be followed 
+    a. Break it down across a row or column
+    a. Determine sign of each bit
+    a. Break down each sub matrix in same way 
+    a. Until we get to a $2 \times 2$
+    
+1. This leads to co-factor expansions
+
+1. It is important for Inverses, so we will discuss
+
+1. Some examples in R?
+
+## Co-factors
+
+1. Co-factor: signed "minor" of an element
+
+1. From above...only term starting with $a_{11}$
+
+$$
+a_{11} \begin{vmatrix} a_{22} & a_{23} \\ a_{32} & a_{33} \end{vmatrix} 
+$$
+
+## More cofactors
+
+3. The determinant parts cover rows and colums 2 and 3
+    a. $a_{11}$ refers to first row and column
+    a. Determinant for sub-matrix after deleting first row and column
+    a. That determinant is labeled $|A_{11}|$
+  
+4. Co-factor of $a_{ij}$: Is the signed determinant
+
+$$
+c_{ij} = (-1)^{i+j}|A_{ij}|
+$$
+
+## Determinant Rules: Part I
+
+1. $|A'|=|A|$
+
+1. If multiply one row or one column by $k$, then determinant is a factor of $k$ larger
+
+1. If $A$ is $n \times n$, $|kA| = k^n|A|$
+
+1. If there are two equal rows or two equal columns, $|A|=0$
+
+1. If any row or column is a multiple of another row or column, $|A|=0$
+
+1. The determinant is not changed if the multiple of one row (column) is added to another
+
+## Determinant Rules: Part II
+
+7. If $A$ is diagonal, $|A| = a_{11}a_{22} \cdots a_{nn}$
+
+7. Triangular matrix has either every element above or below the diagonal with a value of 0. So, if $A$ is triangular, its determinant is the same as if it is a diagonal matrix
+
+7. If $B$ is taken from $A$, where either one row or one column are interchanged, then, $|B| = -|A|$
+
+7. If $A$ and $B$ are same order, $|AB| = |A||B|$
+
+7. In general, $|A+B| \neq |A| + |B|$
+
+# Matrix Rank 
+
+## Rank Concept
+
+1. A matrix has rank of $r$ iff one determinant of order $r$ that is not zero and no determinant of more than order $r$ that is not zero
+    a. A bit messy definition
+    a. Rank $r$ is the largest order submatrix that has a nonzero determinant (more intuitive?)
+
+
+## Rank Example
+
+$$
+A = \begin{bmatrix}
+4 & 5 & 2 & 14 \\
+3 & 9 & 6 & 21 \\
+8 & 10 & 7 & 28 \\
+1 & 2 & 9 & 5
+\end{bmatrix}
+$$
+
+1. $|A| = 0$
+1. Drop fourth row and column... $|A_{sub}| = 63$
+1. Rank = 3
+
+## In R: part I
+
+```{r new-mat1, results ="asis"}
+
+newA <- matrix(c(4,5,2,14,
+               3,9,6,21,
+               8,10,7,28,
+               1,2,9,5),
+               byrow=TRUE,
+               nrow = 4)
+
+kable(newA)
+
+det(newA)
+
+```
+
+
+## In R: Part II
+
+```{r new-mat2, dependson="new-mat1", results="asis"}
+
+#run the function qr() 
+qr(newA)$rank
+
+#Alternative: load the Matrix package...
+# may need to install first
+# if(!require("Matrix")) install.packages("Matrix", dependencies = TRUE)
+library(Matrix)
+
+#...and run the function rankMatrix()
+rankMatrix(newA)[1]
+
+```
+
+
+## Linear dependence math
+
+1. Look at $A$ a bit differently
+
+$$
+ 1 \begin{bmatrix}
+4  \\
+3  \\
+8  \\
+1 
+\end{bmatrix}
++2
+\begin{bmatrix}
+5  \\
+9  \\
+10  \\
+2 
+\end{bmatrix}
++0
+\begin{bmatrix}
+ 2  \\
+ 6  \\
+ 7  \\
+ 9 
+\end{bmatrix}
+-1
+\begin{bmatrix}
+ 14 \\
+ 21 \\
+ 28 \\
+ 5
+\end{bmatrix}
+= \mathbf{0}
+$$
+
+## Linear dependence comments
+
+2. It shows us that the columns are linearly dependent
+    a. Where, $A = \begin{bmatrix} A_1 & A_2 & A_3 & A_4 \end{bmatrix}$
+    a. Also, $c_1A_1 + c_2A_2 + c_3 A_3 + c_4 A_4 = \mathbf{0}$
+    a. Finally, $c_j \neq 0$ $\forall j$
+
+2. We can also consider across rows...
+
+## Linear Independence
+
+1. In principle, the first three columns are linearly independent
+
+1. Any subset of linearly independent vectors is linearly independent
+    a. So, any two of these three are linearly independent
+    a. So are these three dropping the last row - see a few slides earlier
+
+## Linear Independence and Rank 
+
+1. Rank of A is maximum number of linearly independent columns (rows)
+    a. For metrics, we normally focus on columns (of data)
+    a. We normally have many more observations (rows) than variables (columns)
+    a. If the max number of linearly independent columns is the same as the number of columns, the matrix is *full column rank* (or row)
+    a. If a square matrix is not full column/row rank, it is singular and has a 0 determinant
+    
+## Some Properties
+
+1. $rank(I_n) = n$
+
+1. $rank(kA) = rank(A)$, if $k \neq 0$
+
+1. $rank(A') = rank (A)$
+
+1. If $A$ is $m \times n$, then $rank(A) \leq \min \{m, n\}$
+
+1. If $A$ and $B$ are matrixes, then $rank(AB) \leq \min \{rank(A),rank(B)\}$
+
+1. If $A$ is $n \times n$, $rank(A) = (<) n$ iff $A$ is nonsingular (singular) 
+    
+1. if $u$ and $v$ are nonzero $n \times 1$ vectors, $rank(u'v) = 1$
+
+# Matrix Inversion
+
+## Scalar Inverse
+
+1. Scalar: 
+    a. $k^{-1} = 1/k$
+    a. $k \times (1/k) = 1$
+    a. The latter underpins the definition
+
+## As a matrix
+
+1. Matrix:
+    a. $A^{-1}A = I$
+    a. But, we cannot divide by a matrix, only a scalar..
+        i. NOT $1/A$
+        i. RATHER $A^{-1} = 1/|A| \times C'$
+        i. $C$ is the cofactor matrix covering all possible row/column deletions
+
+
+## Background calculations:  $2 \times 2$
+
+1. Determinant
+$$
+A = \begin{bmatrix}
+2 & 1 \\
+1 & 2 \end{bmatrix}
+\qquad
+|A| = 3
+$$
+
+2. Co-factors
+$$
+C_{11} = 2
+\qquad 
+C_{12} = -1
+\qquad
+C_{21} = -1
+\qquad
+C_{22} = 2
+$$
+
+## and, in R
+
+```{r inverses1, dependson="sym-mat1", results="asis"}
+
+# if(!require("matlib")) install.packages("matlib", dependencies = TRUE)
+library(matlib)
+
+sA <- matrix(c(2,1,1,2), byrow=T, nrow = 2)
+
+cofactor(sA,1,1)
+cofactor(sA,1,2)
+cofactor(sA,2,1)
+cofactor(sA,2,2)
+```
+
+
+## Example Inverse Calculation
+
+$$
+\begin{aligned}
+A^{-1} &= \frac{1}{|A|} C' \\
+ &= \frac{1}{3} \begin{bmatrix} 2 & -1 \\ -1 & 2 \end{bmatrix}' \\
+ &= \frac{1}{3} \begin{bmatrix} 2 & -1 \\ -1 & 2 \end{bmatrix} \\
+ &= \begin{bmatrix} 2/3 & -1/3 \\ -1/3 & 2/3 \end{bmatrix}
+\end{aligned}
+$$
+
+## Calculation in R
+
+```{r inverses2, dependson="inverses1", results="asis"}
+
+CF <- adjoint(sA)
+
+# using cofactors
+sAinv <- (1/det(sA)) * CF
+kable(sAinv)
+
+# using inverse function
+sAinvcheck <- inv(sA)
+kable(sAinvcheck)
+
+# double-checking
+#kable(sA %*% sAinv)
+
+```
+
+
+## Inverse Double-Check
+
+$$
+\begin{aligned}
+A^{-1}A &= \begin{bmatrix}
+2 & 1 \\
+1 & 2 \end{bmatrix}
+\begin{bmatrix} 2/3 & -1/3 \\ -1/3 & 2/3 \end{bmatrix} \\
+&= \begin{bmatrix} 1 & 0 \\ 0 & 1 \end{bmatrix}
+\end{aligned}
+$$
+
+## Some Rules
+
+1. $I^{-1} = I$
+
+1. $\left(A^{-1}\right)^{-1} = A$
+
+1. $\left(A^{-1}\right)' = \left(A'\right)^{-1}$
+
+1. If $A$ and $B$ are square and $BA=I$, then $AB=I$
+
+1. If $A$ is nonsingular, $A^{-1}$ is nonsingular
+
+1. If $A$ and $B$ are nonsingular, $(AB)^{-1} = B^{-1}A^{-1}$
+
+1. The inverse of a block diagonal matrix is a block diagonal matrix containing the inverse of the blocks
+
+
+
+# References
+
+## References 
+
