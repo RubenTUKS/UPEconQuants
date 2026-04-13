@@ -1,0 +1,1039 @@
+---
+title: "Regression Analysis"
+subtitle: "Theory, Review and Preliminary Ideas"
+author: "Steve Koch"
+date: "today"
+format: 
+  revealjs:
+    theme: solarized
+knitr:
+  opts_chunk:
+    echo: true
+    eval: true
+    cache: true
+    concordance: true
+    autodep: true
+    comment: "#>"
+    dpi: 300
+    fig.align: "center"
+    out.width: 75%
+editor: source
+bibliography: 
+  - module.bib
+  - software-refs.bib
+  - data-slides.bib
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(cache=TRUE,
+                      echo=FALSE,
+                      autodep=TRUE,
+                      message=FALSE,
+                      warning=FALSE,
+                      dev='pdf',
+                      out.width="90%",
+                      fig.asp=0.65,
+                      fig.align='center')
+knitr::opts_knit$set(kable.force.latex = TRUE)
+
+
+library(Matching) 
+library(ggplot2)
+library(xtable)
+set.seed(42)
+library(sandwich)
+library(lmtest)
+library(car)
+library(nlstools)
+library(MASS)
+library(nnet)
+library(tidyverse)
+library(arm)
+library(mvtnorm)
+library(lme4)
+library(multiwayvcov)
+library(clusterSEs)
+library(haven)
+```
+
+
+# Expectations
+
+## Finite population mean
+
+- Finite (implicitly discrete) 
+    + $E[X] = \sum_{x\in X} x \cdot p(x)$
+    + $x$ is a realisation in the population of $X$
+    + $p$ is the probability density
+    + Classic q: What is it for the roll of a die?
+
+## Infinite population mean
+
+- Infinite 
+    + $E[X] = \int_x x \cdot f(x)dx$
+    + $x$ is continuous and lies in the population of $X$
+    + $f$ is the probability density function
+    + Classic q: What is it for a uniform distribution on $[a,b]$?
+
+- Note: $x$ could be a function, too.
+
+## Expectations rules 
+
+1. $E[X \pm k] = E[X] \pm k$
+1. $E[k \cdot X] = k \cdot E[X]$
+1. $E[X \pm Y] = E[X] \pm E[Y]$
+1. $E[X \cdot Y] = E[X] \cdot E[Y]$
+    a. Only if $X$ and $Y$ are independent
+    a. What is independence? 
+    
+## Independence reviewed
+
+- Set definition
+
+$$
+P(A \cap B) = P(A)P(B)
+$$
+ 
+- Conditional set definition
+
+$$
+P(A|B) = \frac{P(A \cap B)}{P(B)} = \frac{P(A)P(B)}{P(B)} = P(A)
+$$
+
+## In words
+
+- The "occurrence" of B does not affect the "occurrence" of A
+- $A$ and $B$ can still have common elements
+- Independence is not mutually exclusive
+
+$$
+P(A \cap B) = \emptyset
+$$
+
+
+# Variances
+    
+## Population measures
+
+- $V[X] = E\left[ (X-E[X])^2 \right]$
+- $V[X] = E[X^2] - E[X]^2 \neq 0$
+- Calculate variance from a die
+- $C[X,Y] = E[(X-E[X])(Y-E[Y])]$
+    
+## Variance rules
+
+1. $V[X \pm k] = V[X]$
+1. $V[k \cdot X] = k^2 \cdot V[X]$
+1. $V[X \pm Y] = V[X] \pm V[Y]$ if independent
+1. $V[X \pm Y] = V[X] + V[Y] \pm C[X,Y]$
+
+
+# Conditional Expectations
+
+## Definitions and Theory
+
+- Assuming $B$ is a non-zero probability event
+
+$$
+P(A|B) = \frac{P(A \cap B)}{P(B)} 
+$$
+
+- A conditional density
+
+$$
+p(x|B) = P(X=x|B) = \frac{P(X=x,B)}{P(B)}
+$$
+
+## Underpinning regression
+
+- A conditional expectation
+
+$$
+E[X|B] = \sum_{x \in X} x \cdot p(x|B)
+$$
+
+
+## More common discrete
+
+- Two discrete random variables $X$, $Y$, with conditional joint density 
+
+$$
+f_{Y|X} (y|x) = \frac{P(Y=y,X=x)}{P(X=x)} = \frac{f_{Y,X} (y,x)}{f_X(X)}
+$$
+
+- Conditional expectation
+
+$$
+E[Y|X=x] = \sum_{y \in Y} y \cdot f_{Y|X}(y|x)
+$$
+
+## Separate this
+
+- Overall (partition theorem)
+
+$$ 
+E[Y] = \sum_{x \in X} E[Y|X=x] \cdot P(X=x)
+$$
+
+## Continuous conditional expectation version
+
+- Conditional expectation
+
+$$
+E[Y|X=x] = \int_{-\infty}^{\infty} y \cdot f_{Y|X}(y|x)dy
+$$
+
+- Overall (partition theorem)
+
+$$
+E[Y] = \int_{-\infty}^{\infty} E[Y|X=x] \cdot f_X(x)dx
+$$
+
+# Linear Projections
+
+
+## Property I
+
+- Let $(Y, X)$ have some joint distribution with finite variance
+- The linear projection of $Y$ onto $X$ is $\hat{Y} = a + b X$
+
+$$
+\begin{aligned}
+a =& E[Y] - bE[X] \\
+b =& \frac{C[X,Y]}{V[X]} 
+\end{aligned}
+$$
+
+
+## Property II
+
+- Define $Y^* = Y - (a + bX)$
+- What is $E[Y^*]$?
+- What is $C[Y^*,X]$?
+- Take out paper and try...
+- On the next few slides are some useful practice questions...
+
+## Example 1
+
+<!--
+\begin{table}
+\begin{tabular}{l|c|c|}
+$\downarrow D$, $X \rightarrow$ & 0 & 1 \\
+\hline
+ 0 & 0.1 & 0.2 \\
+ 1 & 0.5 & 0.2 \\
+\end{tabular}
+\end{table}
+-->
+
+| ↓ D \ X → |  0  |  1  |
+|:----------|:---:|:---:|
+| 0         | 0.1 | 0.2 |
+| 1         | 0.5 | 0.2 |
+
+- Use R to compare to "paper" analysis
+- Find linear projection of $D$ on $X$
+- Find $C[D^*,X]$
+- Are $D^*$ and $X$ independent?
+
+## Example 2
+
+<!--
+\begin{table}
+\begin{tabular}{l|c|c|}
+$\downarrow X$, $Y \rightarrow$ & 0 & 1 \\
+\hline
+ 0 & 0.2 & 0.1 \\
+ 1 & 0.1 & 0.3 \\
+ 2 & 0.2 & 0.1 \\
+\end{tabular}
+\end{table}
+-->
+
+| ↓ X \ Y → |  0  |  1  |
+|:----------|:---:|:---:|
+| 0         | 0.2 | 0.1 |
+| 1         | 0.1 | 0.3 |
+| 2         | 0.2 | 0.1 |
+
+- Use R to compare to "paper" analysis
+- Find the linear projection of $Y$ onto $X$
+- Find $E[Y|X=\{1,2,3\}]$
+- Is $\hat{Y}$ the same as $E[Y|X]$?
+
+
+
+## Conditional expectations summary
+    
++ The overall mean can be partitioned
++ The conditional mean and the unconditional mean (binary case) are the same only if the conditioning variable is independent
+
+## Projection summary
+
++ A linear projection may not match the conditional expectation
++ The latter may be nonlinear
++ A residual may not be independent
+
+# Basic Model
+
+## Generic Model 
+
+- Linear projection with error
+
+$$
+y = X\beta + u
+$$
+
+- The solution concept
+
+$$
+\hat{\beta} = \underset{b}{\operatorname{argmin}} \text{ }  E
+\left[ \left( y - X \beta \right)' \left( y - X \beta \right) \right] 
+$$
+
+## Generic Model FOC 
+
+
+$$
+\begin{aligned}
+2 [X' y - X' X \hat{\beta}] =& 0 \\
+X' X \hat{\beta} =&X' y \\
+[X'X]^{-1} X'X  \hat{\beta} =& [X'X]^{-1} X'y  \\
+\hat{\beta} =& [X'X]^{-1}X'y 
+\end{aligned}
+$$
+
+## The Sample Analog
+
+$$
+\begin{aligned}
+E[X'X]^{-1} \rightarrow & \left[ \frac{X'X}{n} \right]^{-1} = n \left[
+  \sum_{j=1}^n X_j X_j' \right]^{-1}\\
+E[X'y] \rightarrow & \frac{X'y}{n} =  \frac{1}{n}\sum_{j=1}^n X_j y_j
+\end{aligned}
+$$
+
+## Rewrite the solution 
+
++ Ignoring conditioning on $X$ for simple notation
+
+$$
+\begin{aligned}
+\hat{\beta} =& [X'X]^{-1}[X' (X\beta+u)] \\
+  =& [X'X]^{-1}[X' X\beta]+[X'X]^{-1}X'u \\
+  =& \beta + [X'X]^{-1}X'u
+  \end{aligned}
+$$
+
+## Check the expectation (with respect to $X$)
+
+$$
+\begin{aligned}
+E \left[ \hat{\beta} | X \right] =& \beta + E \left[ [X'X]^{-1}X'u | X
+\right] \\
+ =& \beta +  [X'X]^{-1} E[X'u | X] 
+ \end{aligned}
+$$
+
+- Is it unbiased?
+- How? Why?
+
+## Variance of Estimate
+
+- The definition
+
+$$
+V(\hat{\beta}|X) = E \left[ \left( \hat{\beta} - \beta \right) \left( \hat{\beta} - \beta
+  \right)' \bigg| X \right]
+$$
+
+- Substitution and rearrangement
+
+$$
+V(\hat{\beta}| X) = E \Biggl[ [X'X]^{-1}X'uu'X[X'X]^{-1} \Bigg|X \Biggr] 
+$$
+
+## Heteroskedasticity
+
+- The above implies/allows heteroskedasticity
+- Rewrite the variance 
+- Use at observation level to avoid matrix notation.
+
+$$
+\begin{aligned}
+E \left[ (y_i - X_i'\beta)^2 | X \right] =&  E \left[ \left( (y_i - E[Y_i|X_i])
+  + (E[y_i|X_i] -X_i'\beta) \right)^2 \Big|X_i \right] \\
+  =& V[y_i|X_i] + (E[y_i|X_i] -X_i'\beta)^2
+  \end{aligned}
+$$
+
+## Rewrite and rearrange
+
+- Simple add and subtract of $E[y_i|X_i]$
+- Run the expectation through
+- Even if the variance of $y$ is constant, conditional on $X$, the linear approximation of a nonlinear CEF will result in heteroscedasticity
+
+# Clustering
+
+```{r}
+#| label: clusterdata
+#| echo: false
+
+#- Analysis of Clustered Data
+#- Courtesy of Dr. Yuki Yanai, 
+#- http://yukiyanai.github.io/teaching/rm1/contents/R/clustered-data-analysis.html
+
+gen_cluster <- function(param = c(.1, .5), n = 1000, n_cluster = 50, rho = .5) {
+  # Function to generate clustered data
+  # Required package: mvtnorm
+  
+  # individual level
+  Sigma_i <- matrix(c(1, 0, 0, 1 - rho), ncol = 2)
+  values_i <- rmvnorm(n = n, sigma = Sigma_i)
+  
+  # cluster level
+  cluster_name <- rep(1:n_cluster, each = n / n_cluster)
+  Sigma_cl <- matrix(c(1, 0, 0, rho), ncol = 2)
+  values_cl <- rmvnorm(n = n_cluster, sigma = Sigma_cl)
+  
+  # predictor var consists of individual- and cluster-level components
+  x <- values_i[ , 1] + rep(values_cl[ , 1], each = n / n_cluster)
+  
+  # error consists of individual- and cluster-level components
+  error <- values_i[ , 2] + rep(values_cl[ , 2], each = n / n_cluster)
+  
+  # data generating process
+  y <- param[1] + param[2]*x + error
+  
+  df <- data.frame(x, y, cluster = cluster_name)
+  return(df)
+}
+
+# Simulate a dataset with clusters and fit OLS
+# Calculate cluster-robust SE when cluster_robust = TRUE
+cluster_sim <- function(param = c(.1, .5), n = 1000, n_cluster = 50,
+                        rho = .5, cluster_robust = FALSE) {
+  # Required packages: mvtnorm, multiwayvcov
+  df <- gen_cluster(param = param, n = n , n_cluster = n_cluster, rho = rho)
+  fit <- lm(y ~ x, data = df)
+  b1 <- coef(fit)[2]
+  if (!cluster_robust) {
+    Sigma <- vcov(fit)
+    se <- sqrt(diag(Sigma)[2])
+    b1_ci95 <- confint(fit)[2, ]
+  } else { # cluster-robust SE
+    Sigma <- cluster.vcov(fit, ~ cluster)
+    se <- sqrt(diag(Sigma)[2])
+    t_critical <- qt(.025, df = n - 2, lower.tail = FALSE)
+    lower <- b1 - t_critical*se
+    upper <- b1 + t_critical*se
+    b1_ci95 <- c(lower, upper)
+  }
+  return(c(b1, se, b1_ci95))
+}
+
+# Function to iterate the simulation. A data frame is returned.
+run_cluster_sim <- function(n_sims = 1000, param = c(.1, .5), n = 1000,
+                            n_cluster = 50, rho = .5, cluster_robust = FALSE) {
+  # Required packages: mvtnorm, multiwayvcov, dplyr
+  df <- replicate(n_sims, cluster_sim(param = param, n = n, rho = rho,
+                                      n_cluster = n_cluster,
+                                      cluster_robust = cluster_robust))
+  df <- as.data.frame(t(df))
+  names(df) <- c('b1', 'se_b1', 'ci95_lower', 'ci95_upper')
+  df <- df |> 
+    mutate(id = 1:n(),
+           param_caught = ci95_lower <= param[2] & ci95_upper >= param[2])
+  return(df)
+}
+
+```
+
+## Generate some data
+
+```{r}
+#| eval: false
+
+#- Analysis of Clustered Data
+#- Courtesy of Dr. Yuki Yanai, 
+#- http://yukiyanai.github.io/teaching/rm1/contents/R/clustered-data-analysis.html
+
+gen_cluster <- function(param = c(.1, .5), n = 1000, n_cluster = 50, rho = .5) {
+  # Function to generate clustered data
+  # Required package: mvtnorm
+  
+  # individual level
+  Sigma_i <- matrix(c(1, 0, 0, 1 - rho), ncol = 2)
+  values_i <- rmvnorm(n = n, sigma = Sigma_i)
+  
+  # cluster level
+  cluster_name <- rep(1:n_cluster, each = n / n_cluster)
+  Sigma_cl <- matrix(c(1, 0, 0, rho), ncol = 2)
+  values_cl <- rmvnorm(n = n_cluster, sigma = Sigma_cl)
+  
+  # predictor var consists of individual- and cluster-level components
+  x <- values_i[ , 1] + rep(values_cl[ , 1], each = n / n_cluster)
+  
+  # error consists of individual- and cluster-level components
+  error <- values_i[ , 2] + rep(values_cl[ , 2], each = n / n_cluster)
+  
+  # data generating process
+  y <- param[1] + param[2]*x + error
+  
+  df <- data.frame(x, y, cluster = cluster_name)
+  return(df)
+}
+
+# Simulate a dataset with clusters and fit OLS
+# Calculate cluster-robust SE when cluster_robust = TRUE
+cluster_sim <- function(param = c(.1, .5), n = 1000, n_cluster = 50,
+                        rho = .5, cluster_robust = FALSE) {
+  # Required packages: mvtnorm, multiwayvcov
+  df <- gen_cluster(param = param, n = n , n_cluster = n_cluster, rho = rho)
+  fit <- lm(y ~ x, data = df)
+  b1 <- coef(fit)[2]
+  if (!cluster_robust) {
+    Sigma <- vcov(fit)
+    se <- sqrt(diag(Sigma)[2])
+    b1_ci95 <- confint(fit)[2, ]
+  } else { # cluster-robust SE
+    Sigma <- cluster.vcov(fit, ~ cluster)
+    se <- sqrt(diag(Sigma)[2])
+    t_critical <- qt(.025, df = n - 2, lower.tail = FALSE)
+    lower <- b1 - t_critical*se
+    upper <- b1 + t_critical*se
+    b1_ci95 <- c(lower, upper)
+  }
+  return(c(b1, se, b1_ci95))
+}
+
+# Function to iterate the simulation. A data frame is returned.
+run_cluster_sim <- function(n_sims = 1000, param = c(.1, .5), n = 1000,
+                            n_cluster = 50, rho = .5, cluster_robust = FALSE) {
+  # Required packages: mvtnorm, multiwayvcov, dplyr
+  df <- replicate(n_sims, cluster_sim(param = param, n = n, rho = rho,
+                                      n_cluster = n_cluster,
+                                      cluster_robust = cluster_robust))
+  df <- as.data.frame(t(df))
+  names(df) <- c('b1', 'se_b1', 'ci95_lower', 'ci95_upper')
+  df <- df |> 
+    mutate(id = 1:n(),
+           param_caught = ci95_lower <= param[2] & ci95_upper >= param[2])
+  return(df)
+}
+
+```
+
+
+## Data with no clusters
+
+```{r}
+#| label: noclustBeta
+#| dependson: clusterdata
+#| echo: false
+#| fig-cap: "Histogram of estimates"
+
+# Distribution of the estimator and confidence intervals
+sim_params <- c(.4, 0)   # beta1 = 0: no effect of x on y
+sim_nocluster <- run_cluster_sim(n_sims = 10000, param = sim_params, rho = 0)
+hist_nocluster <- ggplot(sim_nocluster, aes(b1)) +
+  geom_histogram(color = 'black') +
+  geom_vline(xintercept = sim_params[2], color = 'red')
+print(hist_nocluster)
+```
+
+## No clustering power
+
+```{r}
+#| label: noclustSE
+#| dependson: clusterdata
+#| echo: false
+#| fig-cap: "Statistical significance of estimates"
+
+ci95_nocluster <- ggplot(sample_n(sim_nocluster, 100),
+                         aes(x = reorder(id, b1), y = b1, 
+                             ymin = ci95_lower, ymax = ci95_upper,
+                             color = param_caught)) +
+  geom_hline(yintercept = sim_params[2], linetype = 'dashed') +
+  geom_pointrange() +
+  labs(x = 'sim ID', y = 'b1', title = 'Randomly Chosen 100 95% CIs') +
+  scale_color_discrete(name = 'True param value', labels = c('missed', 'hit')) +
+  coord_flip()
+print(ci95_nocluster)
+
+sim_nocluster_mean <- sim_nocluster |> 
+  summarize(type1_error = 1 - sum(param_caught)/n()) |> 
+  pull()
+
+```
+
+## Plot code (with no clustering in data)
+
+
+```{r}
+#| eval: false
+
+ci95_nocluster <- ggplot(sample_n(sim_nocluster, 100),
+                         aes(x = reorder(id, b1), y = b1, 
+                             ymin = ci95_lower, ymax = ci95_upper,
+                             color = param_caught)) +
+  geom_hline(yintercept = sim_params[2], linetype = 'dashed') +
+  geom_pointrange() +
+  labs(x = 'sim ID', y = 'b1', title = 'Randomly Chosen 100 95% CIs') +
+  scale_color_discrete(name = 'True param value', labels = c('missed', 'hit')) +
+  coord_flip()
+print(ci95_nocluster)
+
+sim_nocluster_mean <- sim_nocluster |> 
+  summarize(type1_error = 1 - sum(param_caught)/n()) |> 
+  pull()
+
+```
+
+
+## Data with clusters histogram
+
+```{r}
+#| label: clusterBeta
+#| dependson: clusterdata
+#| echo: false
+#| fig-cap: "Histogram of estimates"
+
+#Data with clusters
+sim_params <- c(.4, 0)   # beta1 = 0: no effect of x on y
+sim_cluster_ols <- run_cluster_sim(n_sims = 10000, param = sim_params)
+hist_cluster_ols <- hist_nocluster %+% sim_cluster_ols
+print(hist_cluster_ols)
+
+```
+
+## Uncorrected clusters statistical power
+
+```{r}
+#| label: clusterSE
+#| dependson: clusterdata
+#| echo: false
+#| fig-cap: "Statistical significance of estimates"
+
+#Confidence interval
+ci95_cluster_ols <- ci95_nocluster %+% sample_n(sim_cluster_ols, 100)
+print(ci95_cluster_ols)
+
+sim_cluster_ols_mean <- sim_cluster_ols |> 
+  summarize(type1_error = 1 - sum(param_caught)/n()) |> 
+  pull()
+```
+
+## Corrected clusters statistical power
+
+```{r}
+#| label: clusterSEfixed
+#| dependson: clusterdata
+#| fig-cap: "Statistical significance of estimates"
+#| echo: false
+
+#clustered robust
+sim_params <- c(.4, 0)   # beta1 = 0: no effect of x on y
+sim_cluster_robust <- run_cluster_sim(n_sims = 10000, param = sim_params,
+                                      cluster_robust = TRUE)
+
+#hist_cluster_robust <- hist_nocluster %+% sim_cluster_ols
+#print(hist_cluster_robust)
+
+#Confidence Intervals
+ci95_cluster_robust <- ci95_nocluster %+% sample_n(sim_cluster_robust, 100)
+print(ci95_cluster_robust)
+
+sim_cluster_robust_mean <- sim_cluster_robust |> 
+  summarize(type1_error = 1 - sum(param_caught)/n()) |> 
+  pull()
+```
+
+## Correcting for clusters code
+
+```{r}
+#| eval: false
+
+# code from Cunningham
+
+#clustered robust
+sim_params <- c(.4, 0)   # beta1 = 0: no effect of x on y
+sim_cluster_robust <- run_cluster_sim(n_sims = 10000, param = sim_params,
+                                      cluster_robust = TRUE)
+
+#hist_cluster_robust <- hist_nocluster %+% sim_cluster_ols
+#print(hist_cluster_robust)
+
+#Confidence Intervals
+ci95_cluster_robust <- ci95_nocluster %+% sample_n(sim_cluster_robust, 100)
+print(ci95_cluster_robust)
+
+sim_cluster_robust_mean <- sim_cluster_robust |> 
+  summarize(type1_error = 1 - sum(param_caught)/n()) |> 
+  pull()
+```
+
+
+## Quick review of statistical power
+
+1. No clustering, no correction "False rejection rate" = `r round(sim_nocluster_mean,3)`
+
+1. Clustering, no correction "False rejection rate" = `r round(sim_cluster_ols_mean,3)`
+
+1. Clustering, with correction "False rejection rate" = `r round(sim_cluster_robust_mean,3)`
+
+# Further Regression Features
+
+## Mechanical OLS and projection
+
++ What if we consider nonlinear conditional expectations in linear models?
++ We will apply the matrix math to see the solution
++ It is good practice and you should see if you can replicate the result
+
+## Look at CEF
+
++ We explore three important properties
++ These properties offer deep insight into OLS
++ We also look into Frisch-Waugh-Lovell theorem
++ I recommend trying to 'replicate' the "proofs"/properties
+
+
+## Discrete Value Covariates
+
+- Suppose $X = \{1, 2, \dots, K \}$
+- Define $D_k = 1$ if $X=k$
+- Define the (nonlinear?) conditional expectation
+
+$$
+E[y|X=x] = \begin{cases}
+  \beta_1 & \text{ if } X = 1 \\
+  \beta_2 & \text{ if } X = 2 \\
+  \vdots \\
+  \beta_K & \text{ if } X = K
+  \end{cases} = \sum_k D_k \beta_k 
+$$
+
+## Linear in parameters regression
+
+- Saturated regression
+
+$$
+y_i = \sum_k \beta_k D_{ik} + \varepsilon_i
+$$
+
+- For K = $\{1, 2 \}$ and $n = 3$
+
+$$
+X = \begin{bmatrix} 1 & 0 \\
+                    0 & 1 \\
+                    0 & 1 
+                    \end{bmatrix}
+$$
+
+## Matrix analysis 
+
+$$
+X'X = \begin{bmatrix} 1 & 0 \\
+                      0 & 2
+                      \end{bmatrix}
+$$
+
+```{r}
+x <- matrix(c(1,0,0,0,1,1),ncol = 2)
+xtx <- t(x) %*% x
+xtx.inv <- solve(xtx)
+```
+
+
+$$
+[X'X]^{-1} = \begin{bmatrix} 1 & 0 \\
+                      0 & 0.5
+                      \end{bmatrix}
+$$
+
+## Saturated Regression $X'Y$
+
+- Define $y$
+
+$$ 
+y' = \begin{bmatrix} y_1 & y_2 & y_3 \end{bmatrix}
+$$
+
+- Working it out
+
+$$
+X'y = \begin{bmatrix} 1 & 0 & 0 \\
+                      0 & 1 & 1 \\
+                    \end{bmatrix}
+      \begin{bmatrix} y_1 \\
+                      y_2  \\
+                      y_3 \\
+                      \end{bmatrix}
+    = \begin{bmatrix} y_1  \\
+                      y_2 + y_3 \\
+                    \end{bmatrix}
+$$
+
+## Saturated Model Estimates
+
+- $\hat{\beta}$ 
+
+$$
+[X'X]^{-1}X'y = \begin{bmatrix} 1 & 0 \\
+                      0 & 0.5
+                      \end{bmatrix} 
+                \begin{bmatrix} y_1  \\
+                      y_2 + y_3 \\
+                    \end{bmatrix}
+              = \begin{bmatrix} \frac{y_1}{1} & \frac{y_2 + y_3}{2} \end{bmatrix}
+$$
+
+- In other words
+
+$$
+\hat{\beta}_k = \overline{y}_k = \sum_{\forall i : D_k = k} y_i
+$$
+
+# Conditional Expectations Properties
+
+## The CEF is a random variable
+
+$$
+\begin{split}
+E\{E[Y_i|X_i]\} =& \int E[Y_i|X_i] g_x(u) du \\
+  =& \int \left[  \int t f_y(t|X_i=u) dt \right] g_x(u) du \\
+  =& \int \int t f_y(t|X_i=u)  g_x(u) du dt \\
+  =& \int t \left[ \int  f_y(t|X_i=u)  g_x(u) du\right] dt \\
+  =& \int t \left[ h_{xy}(u,t) du \right] dt  = \int t k_y(t) dt   = E[Y_i]
+\end{split}
+$$
+
+
+
+## Decomposition Property
+
+- Note from previous slide: 
+    + Iterated expectations give us population parameters
+    + We see this again, next slide
+- For decomposition:
+    - We can write $Y_i = E[Y_i|X_i] + \epsilon_i$
+    - Because: $E[\epsilon_i|X_i] = 0$, $E[\epsilon h(X_i)] = 0$
+
+## Additional math
+
+- Condition on $X$
+
+$$
+\begin{split}
+E[\epsilon|X_i] =& E\{Y_i-E[Y_i|X_i] |X_i \} \\
+ =& E[Y_i|X_i] - E[Y_i|X_i]  \\
+ =& 0
+\end{split}
+$$
+- Conditioning on $X$ is same as conditiong on function of $X$
+
+$$
+E[\epsilon h(X_i)] = E \{E[\epsilon|X_i] h(X_i) \} = E[\epsilon|X_i]
+h(X_i) = 0
+$$
+
+
+## CEF Prediction Property I
+
+- Define $m(X_i)$ as a simple function of  $X_i$
+- The CEF solves a minimum mean squared error (MMSE) prediction problem
+
+$$
+E[Y_i|X_i] = \underset{m(X_i)}{\operatorname{argmin}} \text{ }  E
+\left[ \left( Y_i - m(X_i) \right)^2 \right] 
+$$
+
+## CEF Prediction Property II
+
+- Note:
+
+$$
+\begin{aligned}
+\left( Y_i - m(X_i) \right)^2 =& \left( (Y_i-E[Y_i|X_i]) + (E[Y_i|X_i]
+  - m(X_i) \right)^2  \\
+  =& (Y_i-E[Y_i|X_i])^2 + \\
+   & 2 \{(E[Y_i|X_i]- m(X_i)) \times  (Y_i-E[Y_i|X_i]) \}\\
+  &+ (E[Y_i|X_i]- m(X_i))^2
+  \end{aligned}
+$$
+
+## CEF Prediction Property III
+
+- Define $h(X_i) =  2 (E[Y_i|X_i]- m(X_i))$
+$$
+\begin{aligned}
+\left( Y_i - m(X_i) \right)^2 =& (Y_i-E[Y_i|X_i])^2 \\
+ &+ h(X_i) (Y_i-E[Y_i|X_i]) \\
+ &+(E[Y_i|X_i]- m(X_i))^2
+\end{aligned}
+$$
+
+- First term does not have $m$
+- Second term is zero by 'rule' of CEF
+- Third term, thus yields: $E[Y_i|X_i] = m(X_i)$
+
+## ANOVA Theorem 
+
+- Analysis of variance result
+
+$$
+V[Y_i] = V(E[Y_i|X_i])+E[V(Y_i|X_i)]
+$$
+
+- By CEF Decomposition and basic variance rule over a constant
+
+$$
+V[Y_i] = V(E[Y_i|X_i]) + V[\epsilon_i]
+$$
+- Explained sum of squares + unexplained sum of squares
+
+# Frisch-Waugh-Lovell
+
+## Some Initial Definitions
+
+- Residual: $\hat{e} = y - \hat{y} = y - X\hat{\beta}$
+- Prediction Maker: $P=X(X'X)^{-1}X'$
+- Residual Maker: $M = I - X(X'X)^{-1}X'$
+- Properties: 
+    - Symmetric: $M'=M$
+    - Idempotent: $MM = M'M = M$
+    - Makes residual: $My = \hat{e}$
+    - Regression of $X$ on $X$ gives perfect fit: $MX = 0$
+    - ANOVA
+    
+## Residual and Prediction
+
+- Makes residual
+
+$$
+\begin{aligned}
+My &= y - X(X'X)^{-1}X'y \\
+  &= y - X\hat{\beta} = y - \hat{y} \\
+  &= \hat{e}
+\end{aligned}
+$$
+
+- Prediction should be fairly clear
+
+## ANOVA I
+
+- Begin with a basic point
+
+$$
+\begin{aligned}
+M+P &= I \\
+(M+P)y &= Iy 
+\end{aligned}
+$$
+
+## ANOVA II
+
+- Use them to get our ANOVA result
+
+$$
+\begin{aligned}
+\hat{e} + \hat{y} &= y \\
+y'y &= (y'P + y'M)(Py + My) \\
+ &= \hat{y}'\hat{y} + \hat{e}'\hat{e}
+\end{aligned}
+$$
+
+- Total SS = Expl SS + Unexp SS
+
+## A Simple Bivariate Model
+
+- $X = [X_1 X_2]$
+    - $X_1$ is a column of ones
+    - $X_2$ is a single column random variable
+- Define $M_1 = I - X_1(X_1'X_1)^{-1}X_1'$
+    - It is a **residual maker** Matrix
+    - It helps us understand an important regression point
+
+
+## The basic theorem result I
+
+- Observed and predicted (regression decomposition)
+- Premultiply by M1
+
+$$
+\begin{aligned}
+Y &= X_1 \hat{\beta}_1 + X_2 \hat{\beta}_2 + \hat{u} \\
+M_1Y &= M_1X_1 \hat{\beta}_1 + M_1X_2 \hat{\beta}_2 + M_1\hat{u} \\
+ M_1 Y &= 0 + M_1X_2 \hat{\beta}_2 + \hat{u}
+\end{aligned}
+$$
+
+## The result II
+
+- Now, premultiply by $X_2'$ and solve
+
+$$
+\begin{aligned}
+ X_2' M_1 y &= X_2' M_1 X_2 \hat{\beta}_2 + 0 \\
+ (X_2' M_1 X_2)^{-1} X_2' M_1 y &= (X_2' M_1 X_2)^{-1}X_2' M_1 X_2 \hat{\beta}_2  \\
+ \hat{\beta}_2 &= (X_2' M_1 X_2)^{-1} X_2' M_1 y\\
+   &= ((x_2^*) ' (x_2^*))^{-1} (x_2^*)' y
+\end{aligned}
+$$
+
+## Meaning?
+
+- We can get our estimate the usual way, or...
+- We can regress $X_2$ on $X_1$ and obtain residuals $x_2^*$
+- We then regress $y$ on $x_2^*$
+- Notes: 
+    - If $X_2$ and $X_1$ are not correlated, we do not need first regression
+    - Thus, additional controls not always better
+    - Multicollinearity shows up as small variation in $x_2^*$
+    
+## Aside I
+
+- Regression of $X_2$ on $X_1$
+
+$$
+X_2 = X_1 \hat{\gamma} + x_2^*
+$$
+
+- Estimate
+
+$$ 
+\hat{\gamma} = (X_1'X_1)^{-1}X_1'X_2 
+$$
+
+## Aside II
+
+- Residuals
+
+$$
+\begin{aligned}
+x_2^* &= X_2 -  X_1 \hat{\gamma} \\
+ &= X_2 - X_1 (X_1'X_1)^{-1}X_1'X_2 \\
+ &= M_1 X_2
+\end{aligned}
+$$
+
+- Since $M_1$ is idempotent..
+
+$$
+\begin{aligned}
+X_2'M_1 X_2 &= X_2' M_1'M_1 X_2 \\
+ &= (x_2^*) ' (x_2^*)
+\end{aligned}
+$$
+
+
+# References 
+
+## References {.allowframebreaks}
+
+
+
+
+
+
+
