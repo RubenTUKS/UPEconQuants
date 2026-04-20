@@ -1,0 +1,1488 @@
+---
+title: "Regression"
+subtitle: "Variance adjustment, decomposition and dimension reduction"
+author: "Prof. Steven F. Koch"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output: 
+  beamer_presentation:
+    latex_engine: xelatex
+    toc: true
+    keep_tex: true
+    incremental: false
+    slide_level: 3
+    theme: "Montpellier"
+    colortheme: "whale"
+    fonttheme: "structureitalicserif"
+bibliography: slides.bib
+link-citations: TRUE
+header-includes:
+    - \usepackage{booktabs}
+    - \usepackage{longtable}
+    - \usepackage{array}
+    - \usepackage{multirow}
+    - \usepackage{wrapfig}
+    - \usepackage{float}
+    - \usepackage{colortbl}
+    - \usepackage{pdflscape}
+    - \usepackage{tabu}
+    - \usepackage{threeparttable}
+    - \newtheorem{assumption}{Assumption}
+    - \DeclareMathOperator{\plim}{plim}
+    - \DeclareMathOperator{\prob}{prob}
+    - \usepackage{fancybox, MnSymbol}
+    - \usepackage{mathtools}
+    - \usepackage{amsmath}
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(cache=TRUE,
+                      echo=FALSE,
+                      autodep=TRUE,
+                      message=FALSE,
+                      warning=FALSE,
+                      #dev='tikz',
+                      dev='pdf',
+                      out.width='60%',
+                      out.height='60%',
+                      fig.align='center')
+
+def.chunk.hook  <- knitr::knit_hooks$get("chunk")
+knitr::knit_hooks$set(chunk = function(x, options) {
+  x <- def.chunk.hook(x, options)
+  ifelse(options$size != "normalsize", paste0("\\", options$size,"\n\n", x, "\n\n \\normalsize"), x)
+})
+
+knitr::opts_knit$set(kable.force.latex = TRUE)
+
+# data manip
+library(tidyverse)
+library(haven)
+
+# tables
+library(kableExtra)
+library(qwraps2)
+library(stargazer)
+library(xtable)
+  
+# analysis  
+library(nnet)
+library(AER)
+library(MASS)
+library(e1071)
+library(class)
+library(oaxaca)
+library(glmnet)
+
+# testing
+library(car)
+library(sandwich)
+library(lmtest)
+
+# special options
+#options(scipen = 99,
+#        np.messages=FALSE,
+#        xtable.comment = FALSE,
+#        qwraps2_markup = "latex")
+
+# declaring any special values
+set.seed(42)
+num.boot <- 399 
+num.splits <- 5000
+q1 <- 0.025
+q2 <- 0.975
+nmulti <- 20
+
+```
+
+
+```{r lcs, dependson="some-functions"}
+
+ihs <- function(col) { 
+                transformed <- log((col) +  (sqrt(col)^2+1))
+                return(transformed)
+}
+
+# LCS data
+person <- read_dta(file = "../../../Data/lcs-2014-2015-persons-final-v1.dta")
+household <- read_dta(file = "../../../Data/lcs-2014-2015-households-v1.dta")
+
+
+# hhsize, number of kids (age < 15) in each household
+person1 <- person %>%
+  group_by(UQNO) %>%
+  summarise(hhsize = n(), # household size by appearance times of each ID
+            kids = sum(Q14AGE < 15), # number of child (age<15)
+            adults = hhsize - kids
+            ) %>%
+  mutate(UQNO = as.character(UQNO))
+
+
+# household level variables
+house.df <- household %>% 
+  filter(income_inkind != 0,
+         Q229NETINCOME != 0,
+         expenditure_inkind !=0) %>%
+  dplyr::select(
+    UQNO, income_inkind, expenditure_inkind, Q229NETINCOME, 
+    SETTLEMENT_TYPE, hholds_wgt, province_code, SexOfHead) %>%
+  transmute(SexOfHead,
+    UQNO = as.character(UQNO), 
+    psu = substr(UQNO,1,11),
+    du = substr(UQNO,12,16),
+    hhnum = substr(UQNO,17,18),
+    hhwt = hholds_wgt,
+    lny = log(as.numeric(income_inkind)/12),
+    lnminq = log(as.numeric(Q229NETINCOME)),
+    lnx = log(as.numeric(expenditure_inkind/12)),
+    province = as_factor(province_code),
+    settle = as_factor(SETTLEMENT_TYPE)
+    ) %>%
+  droplevels() 
+  
+
+
+#merge above 4 dataframes to get a dataframe LCS2014
+df <- person1 %>%
+  full_join(house.df, by="UQNO") %>%
+  drop_na() 
+
+LCS2014 <- df %>%
+  filter(adults == 2,
+         kids <= 1) 
+
+# here is the data for the lab
+#lab4.df <- df
+#save(lab4.df, file = "../../../Data/lab4.Rdata")
+```
+
+
+```{r lcs2, dependson="lcs"}
+
+house.df2 <- household %>%
+  dplyr::select(
+    UQNO, income_inkind, Q229NETINCOME, province_code, expenditure_inkind,
+    Ageofhead, SexOfHead, PopGroupOfHead, hhsize, hholds_wgt) %>%
+  transmute(
+    UQNO = as.character(UQNO), 
+    psu = substr(UQNO,1,11),
+    du = substr(UQNO,12,16),
+    hhnum = substr(UQNO,17,18),
+    hhwt = hholds_wgt,
+    x = as.numeric(expenditure_inkind),
+    x.ihs = ihs(x/12),
+    y = as.numeric(income_inkind),  # 63 observations have 0 values... which(house.df$y==0)
+    y.ihs = ihs(y/12),
+    min.ihs = ihs(Q229NETINCOME),
+    province = as_factor(province_code),
+    age = as.integer(Ageofhead),
+    male = as_factor(SexOfHead),
+    pop.group = as_factor(PopGroupOfHead)
+    ) %>%
+  droplevels()
+
+lasso.df <- person1 %>%
+  full_join(house.df2, by="UQNO") %>%
+  drop_na() 
+
+df.x <- model.matrix(object = min.ihs ~ x.ihs + y.ihs + kids + adults 
+                     + age + male + province + pop.group,
+                     data = lasso.df) 
+```
+
+
+
+# Variances and Testing
+
+## Variances
+
+### As we showed last time
+
+- The variance definition
+
+$$
+V(\hat{\beta}|X) = E \left[ \left( \hat{\beta} - \beta \right) \left( \hat{\beta} - \beta
+  \right)' \bigg| X \right]
+$$
+
+- In matrix notation
+
+$$
+V(\hat{\beta}| X) = E \Biggl[ [X'X]^{-1}X'uu'X[X'X]^{-1} \Bigg|X \Biggr] 
+$$
+
+### How to address it?
+
+- Basic analogy principle
+- Use an 'estimate' for an actual value
+- Thus:
+
+$$
+V(\hat{\beta}| X) = E \Biggl[ [X'X]^{-1}X'\hat{u}\hat{u}'X[X'X]^{-1} \Bigg|X \Biggr] 
+$$
+
+- We do not expect any particular $\hat{u}_i$ to be zero
+- Instead, $E[\hat{u}|X] = 0$
+- Take a look at the [sandwich package](https://cran.r-project.org/web/packages/sandwich/index.html)
+
+### Some 'corrections'
+
+1. HC0: use $\hat{u}_i^2$
+
+2. HC1: use $\frac{n}{n-k} \cdot \hat{u}_i^2$
+
+3. HC2: use $\frac{\hat{u}_i^2}{1-h_{ii}}$, where $h_{ii}$ is the term from the predictor matrix discussed before break
+
+4. HC3: use $\frac{\hat{u}_i^2}{(1-h_{ii})^2}$
+
+5. HC4: use $\frac{\hat{u}_i^2}{(1-h_{ii})^{\delta_i}}$, where $\delta_i = \min \{4, h_i/\overline{h} \}$
+
+6. But, HC1 - HC4 are really just for small samples...
+
+### Clusters
+
+1. Really only for HC2 and HC3
+
+2. HC2: use $\frac{G-1}{G} \left(I_{nG} - H_{GG} \right)^{-1}$, where $nG$ is the number of observations in cluster $G$, and $H_{GG}$ is the prediction matrix for cluster $G$.
+
+3. HC3: use $\frac{G-1}{G} \left(I_{nG} - H_{GG} \right)^{-2}$, where $nG$ is the number of observations in cluster $G$, and $H_{GG}$ is the prediction matrix for cluster $G$.
+
+4. There are further corrections for multiple cluster dimensions, which we might see in panels, for instance.
+
+5. Bootstrapping is also an option..
+
+### Estimation plan
+
+- regress log minimum income on actual income, number of adults in household, and settlement type
+- Present OLS, HC2 and HC2 with clusters.
+- See next
+- What do we see?
+
+### Results
+
+```{r simple-reg, dependson="lcs", results = "asis"}
+
+model <- lm(lnminq ~ lny + adults + settle, 
+            data = df)
+
+robust_se <- sqrt(diag(vcovHC(model, type = "HC2")))
+
+cluster_se <- sqrt(diag(vcovCL(model, cluster = ~ psu, type = "HC2")))
+
+stargazer(model, model, model, 
+          type = "latex",
+          se = list(NULL, robust_se, cluster_se),
+          title = "Regression Results with Different Standard Errors",
+          dep.var.labels = "Log minimum income",
+          keep = c("lny", "adults"),
+          model.numbers = FALSE,
+          column.labels = c("Homoskedastic","HC2","Cluster HC2"),
+          no.space = TRUE, 
+          keep.stat = "n", 
+          header = FALSE, 
+          digits = 5)
+
+```
+
+
+## Testing: Single Parameter
+
+### Back to the variance: a quadratic form
+
+
+$$
+\begin{split}
+\left( \hat{\beta}-\beta \right) \left( \hat{\beta}-\beta \right)' &= 
+  \left( \left(X'X\right)^{-1}X'u \right) \left( \left(X'X\right)^{-1}X'u \right)' \\
+  &= \left(X'X\right)^{-1}X'uu'X\left(X'X\right)^{-1} \\
+  &= A^{-1} B A^{-1}
+\end{split}
+$$
+
++ So, let us look at $A$ and $B$
+
+
+### Pieces of the QF: $A$
+
++ Start with $A$, which is from observed data
+
+$$
+\begin{split}
+A &= X'X \\
+\hat{A} &= N^{-1} \left( \sum_{i=1}^N x_i'x_i \right)
+\end{split}
+$$
+
++ Simple average
++ Built-up from the observation level
+
+### Pieces of the QF: $B$
+
++ Let us look at $B$ (has unobserved information)
+
+\begin{equation}\begin{split}
+B &= X'uu'X \\
+\hat{B} &= N^{-1} \left( \sum_{i=1}^N x_i'\hat{u}_i^2 x_i \right) \\
+ &= N^{-1} \left( \sum_{i=1}^N \hat{u}_i^2x_i'x_i \right) 
+\end{split}\end{equation}
+
+### Distribution of estimators I
+
++ Using sample means for population means
+
+$$
+\begin{aligned}
+\hat{\beta} &\xrightarrow{p} \left( \frac{X'X}{N} \right)^{-1} \left(
+  \frac{X'y}{N} \right) = \beta \\
+\widehat{V \left[ \hat{\beta} \right] } & \xrightarrow{p} 
+ N^{-1} \left( \frac{X'X}{N} \right)^{-1}  \left( \frac{ X'uu'X}{N}
+  \right)  \left(\frac{X'X}{N} \right)^{-1}   = A^{-1}BA^{-1}
+\end{aligned}
+$$
+
+### Distribution of estimators II
+
++ Taking advantage of one of the many CLTs
+
+$$
+\begin{split}
+\hat{\beta} &\xrightarrow{d} \mathcal{N} \left( \beta , N^{-1}\hat{A}^{-1}\hat{B}\hat{A}^{-1}
+\right) \\
+\hat{\beta} - \beta &\xrightarrow{d} \mathcal{N} \left( 0 , N^{-1}\hat{A}^{-1}\hat{B}\hat{A}^{-1}
+\right) \\
+\sqrt{N} \left(\hat{\beta} - \beta \right)  &\xrightarrow{d} \mathcal{N} \left( 0 , \hat{A}^{-1}\hat{B}\hat{A}^{-1}
+\right) \\
+\end{split}
+$$
+
+### Heteroscedasticity-robust test statistics
+
++ Pull out $t-$ statistics or $z-$statistics (using $z$ for simplicity)
++ Replace $A^{-1}BA^{-1}$ with $\hat\Omega$
+
+$$
+\frac{\hat{\beta}_j - \beta_j}{ \sqrt{\hat\Omega[j,j] /N} }
+\xrightarrow{d} \mathcal{N} (0,1)
+$$
+
+
+
+
+## Testing: Multiple Parameter
+
+### An example setup
+
++ Cobb-Douglas production model 
+
+$$
+y=AK^\alpha L^\beta E^\gamma
+$$
+
++ OLS in log
+
+$$
+\ln y= \ln A + \alpha \ln K + \beta \ln L + \gamma \ln E + u
+$$
+
++ Constant returns to scale?
+
+$$
+\alpha + \beta + \gamma = 1
+$$
+
++ A linear restriction 
++ On multiple parameters
+
+### Imposing restrictions under homoscedasticity
+
++ Homoscedasticity leads to an $F-$test
++ General restriction is $R\beta=r$
+
+$$
+\begin{pmatrix} 1 & 1 & 1 \end{pmatrix}
+\begin{pmatrix} \alpha \\ \beta \\ \gamma \end{pmatrix} = 
+\begin{pmatrix} 1 \end{pmatrix}
+$$
+
++ Under Homoscedasticity
+
+$$
+\tilde{\beta} \xrightarrow{d} \mathcal{N} \left( \beta, \sigma^2
+  \left( X'X \right)^{-1} \right)
+$$
+
++ Applying variance rules
+
+$$
+R\tilde{\beta} \xrightarrow{d} \mathcal{N} \left( R \beta, \sigma^2
+  R \left( X'X \right)^{-1} R'\right)
+$$
+
+### Developing the $F-$statistic
+
++ Squared standard normal is distributed as a $\chi^2_{J}$
++ $J$ is number of restrictions or "$=$" signs...
+
+$$
+Q_1 = \frac{ \left( R\tilde{\beta} - R\beta \right)' \left[R \left(
+      X'X \right)^{-1} R' \right]^{-1} \left( R\tilde{\beta} - R\beta
+  \right)}{\sigma^2} \sim \chi^2_J
+$$
+
++ By similar reasoning, 
+
+$$
+Q_2 = \frac{ (N-k) \hat{\sigma}^2 } {\sigma^2} \sim \chi^2_{N-k}
+$$
+
+
++ Ratio of two $\chi^2$ random variables, normalized by their degrees of freedom
++ Yields an $F-$statistic ($\sigma^2$ terms cancel, so not included)
+
+$$
+\lambda = \frac{ \left( R\tilde{\beta} - R\beta \right)' \left[R \left(
+      X'X \right)^{-1} R' \right]^{-1} \left( R\tilde{\beta} - R\beta
+  \right)}{ \hat{\sigma}^2} \cdot \frac{N-k}{J} \sim F_{J,N-k}
+$$
+
+
+### Impose the Restriction
+
++ Impose the restriction
+
+$$
+\lambda = \frac{ \left( R\tilde{\beta} - r \right)' \left[R \left(
+      X'X \right)^{-1} R' \right]^{-1} \left( R\tilde{\beta} - r
+  \right)}{ \hat{\sigma}^2} \cdot \frac{N-k}{J} \sim F_{J,N-k}
+$$
+
++ After some manipulation
+
+$$
+\left( R\tilde{\beta} - r \right)' \left[R \left(
+      X'X \right)^{-1} R' \right]^{-1} \left( R\tilde{\beta} - r
+  \right) = \text{ESS}_U - \text{ESS}_R
+$$
+
++ Therefore a simple test statistic:
+
+$$
+\frac{ \left(R^2_U - R^2_R \right) /J}
+{\left( 1-R^2_U \right)/(N-k)} \sim F_{J,N-k}
+$$
+
+### Heteroscedasticity effects
+
++ Heteroskedasticity invalidates $F$
+    + A heteroskedasticity robust version exists
+    + Here, I describe the Wald version
++ Define a general linear hypothesis $R\beta=r$
++ Return to the distribution of the estimator
+
+
+$$
+\begin{split}
+\hat{\beta} &\xrightarrow{d} \mathcal{N} \left( \beta , N\Omega \right) \\
+R \hat{\beta} &\xrightarrow{d} \mathcal{N} \left( R \beta , NR\Omega R' \right) \\
+R \hat{\beta} -r &\xrightarrow{d} \mathcal{N} \left( R \beta -r , NR\Omega R' \right) \\
+R \hat{\beta} -r &\xrightarrow{d} \mathcal{N} \left( 0 , NR\Omega R' \right) \\
+\end{split}
+$$
+ 
+### Needed statistics
+
++ From this distribution, we can develop a $\chi^2$ distribution
++ Definitions:
+    + Standard normal deviate: A random sample from standard normal distribution
+    + $\chi^2$ Distribution: Sum of squared normal deviates
+    + $\chi^2$ Degrees of Freedom: The number of standard normal deviates being summed
++ Above deviate is not standard normal
++ How do we do this in one dimension (Recall from early stats)? 
+
+### Extending
+
+
++ How does that translate to multiple dimensions?
++ Taking from above
+    + $R\hat{\beta} - r$ is zero mean normal variate
+    + We need to divide by square root of variance
+    + Requires matrix decomposition, let us skip
++ With this in mind...
+
+$$
+k^{-1}(R \hat{\beta} -r)' (R\Omega R')^{-1} (R \hat{\beta} -r)  \xrightarrow{d} \chi^2_k 
+$$
+
++ 'Divided' the squared normal deviate by its variance
++ Equivalent to squaring a standard normal deviate
++ This is a Wald test, rather than an $F$
+
+### Test Estimate
+
+- We use the same model from before, but test all the parameters on settlement.
+- The test statistics will be for homoskedasticity, thus an F, as well as both heteroskedastic and cluster-heteroskedastic models
+
+```{r multiple-tests, dependson = "simple-reg", results = "asis"}
+
+# I use the same covariances matrixes.
+# Create R matrix
+R <- matrix(c(0, 0, 0, 1, 0, 0, #b4 = 0
+              0, 0, 0, 0, 1, 0, #b5 = 0
+              0, 0, 0, 0, 0, 1), #b6 = 0
+            byrow = T, nrow = 3)
+
+robust_vcov <- vcovHC(model, type = "HC2")
+
+cluster_vcov <- vcovCL(model, cluster = ~ psu, type = "HC2")
+
+mtest.F <- linearHypothesis(model, hypothesis.matrix = R, test = "F")
+mtest.ch.het <- linearHypothesis(model, 
+                                 hypothesis.matrix = R, 
+                                 vcov. = robust_vcov,
+                                 test = "Chisq")
+mtest.ch.hetcl <- linearHypothesis(model, 
+                                   hypothesis.matrix = R, 
+                                   vcov. = cluster_vcov,
+                                   test = "Chisq")
+
+results.tab1 <- cbind("F",mtest.F[2,3], mtest.F[2,5], mtest.F[2,6])
+results.tab2 <- cbind("Het",mtest.ch.het[2,2], mtest.ch.het[2,3], 
+                      mtest.ch.het[2,4])
+results.tab3 <- cbind("ClustHet",mtest.ch.hetcl[2,2], mtest.ch.hetcl[2,3],
+                      mtest.ch.hetcl[2,4])
+
+results.tab <- rbind(results.tab1,results.tab2,results.tab3)
+
+kable(results.tab,
+      caption = "F and Chi Sq tests",
+      col.names = c("Var-Assump","DF","F or ChiSq", "Prob"))
+```
+
+
+# Decomposition
+
+## Setup
+
+### Counterfactual type questions
+
++ How might female outcomes (wages, e.g.) change if they were men?
++ We cannot make them men, but we can give them the data characteristics of men
++ Decomposition is one way to examine this
+
+
+### Atheoretical construct
+
++ Define a binary "treatment"
++ Assume it is exogenous
+
+$$
+D_i = \begin{cases} 1, &\text{If male} \\
+  0, & \text{If female}
+\end{cases}
+$$
+
++ Define "treatment" potential outcomes:
+
+
+$$
+Y_i = \begin{cases} Y_{1i}, &\text{Outcome, if male} \\
+Y_{0i}, & \text{Outcome, if female}
+\end{cases} 
+$$
+
+
+### Some formality
+
++ Condition $Y$ on other variables
++ Separate regressions for both groups
+
+$$
+\begin{aligned}
+Y_{0i} &= x_{1i} \beta_0 + u_{0i} \\
+Y_{1i} &= x_{0i} \beta_1 + u_{1i}
+\end{aligned}
+$$
+
++ Responses might differ
++ Characteristics might differ
++ Ignored for now: Structure could differ
+
+
+### Decomposition foundation
+
+
++ Define our estimate of interest
+
+$$
+\hat{\Delta} = \overline{Y}_{1i} - \overline{Y}_{0i}
+$$
+
++ Rewrite a previous useful assumption
++ $E[D_i u_{0i}] = E[D_i u_{1i}] = 0$
++ Why this assumption?
++ Eliminates unobservable effects
++ Thus...
+
+$$
+\hat{\Delta} = \overline{x}_0 \left( \hat{\beta}_1 - \hat{\beta}_0 \right) 
+             + \hat{\beta}_1 \left( \overline{x}_1 - \overline{x}_0 \right) 
+$$
+
+### Derivation...
+
+
+
+$$
+\begin{split}
+\hat\Delta_2 =& \overline{x}_1 \hat{\beta}_1 - \overline{x}_0 \hat{\beta}_0 
+         + \overline{x}_0 \hat{\beta}_1 - \overline{x}_0 \hat{\beta}_1 \\
+         =& \overline{x}_0\left( \hat{\beta}_1 - \hat{\beta}_0 \right) 
+          + \hat{\beta}_1 \left( \overline{x}_1 - \overline{x}_0 \right) 
+\end{split}
+$$
+
++ "2" for twofold decomposition
++ It includes a $\beta$ component: unexplained
++ It includes an $x$ component: explained
++ What is meant by explained and unexplained?
+
+## Extending Decomposition
+
+### Basic setup, again
+
++ Recall the basic model
+
+$$
+\begin{aligned}
+Y_{0i} &= x_{0i} \beta_0 + u_{0i} \\
+Y_{1i} &= x_{1i} \beta_1 + u_{1i}
+\end{aligned}
+$$
+
++ We want to look at
+
+
+$$
+\hat{\Delta} = \overline{Y}_1 - \overline{Y}_0 = \overline{x}_1 \hat{\beta}_1 - \overline{x}_0 \hat{\beta}_0
+$$
+
+### Including an interaction term
+
++ Derivation
+
+$$
+\begin{split}
+\Delta_3 =& \overline{x}_1 \hat{\beta}_1 - \overline{x}_0 \hat{\beta}_0 
+          + \left( \overline{x}_0 \hat{\beta}_0 - \overline{x}_0 \hat{\beta}_0 \right)
+          + \left( \overline{x}_1 \hat{\beta}_0 - \overline{x}_1 \hat{\beta}_0 \right)
+          + \left( \overline{x}_0 \hat{\beta}_1 - \overline{x}_0 \hat{\beta}_1 \right) \\
+         =& \overline{x}_0\left( \hat{\beta}_1 - \hat{\beta}_0 \right) 
+          + \hat{\beta}_0 \left( \overline{x}_1 - \overline{x}_0 \right) 
+          + \hat{\beta}_1 \left( \overline{x}_1 - \overline{x}_0 \right)
+          - \hat{\beta}_0  \left( \overline{x}_1 - \overline{x}_0 \right) \\
+         =& \overline{x}_0\left( \hat{\beta}_1 - \hat{\beta}_0 \right) 
+          + \hat{\beta}_0 \left( \overline{x}_1 - \overline{x}_0 \right) 
+          + \left( \hat{\beta}_1 - \hat{\beta}_0 \right) \left( \overline{x}_1 - \overline{x}_0 \right)
+\end{split}
+$$
+
++ "3" for threefold decomposition
+
+### Interaction term discussion
+
++ It still includes:
+    + unexplained
+    + explained
++ It also includes interaction between coefficients and characteristics
++ Hmmm, what does that measure/represent?
++ Cross-group differences in explanatory variables and coefficients can occur at the same time
+
+## Some Decomp Issues
+
+### What is the right base group?
+
++ Our previous version...
+
+$$
+\begin{split}
+\hat\Delta_2 =& \overline{x}_1 \hat{\beta}_1 - \overline{x}_0 \hat{\beta}_0 
+         + \overline{x}_0 \hat{\beta}_1 - \overline{x}_0 \hat{\beta}_1 \\
+         =& \overline{x}_0\left( \hat{\beta}_1 - \hat{\beta}_0 \right) 
+          + \hat{\beta}_1 \left( \overline{x}_1 - \overline{x}_0 \right) 
+\end{split}
+$$
+
++ What if we reversed the difference?
+
+$$
+\begin{split}
+\hat\Delta_2 =& \overline{x}_0 \hat{\beta}_0 - \overline{x}_1 \hat{\beta}_1 
+         + \overline{x}_1 \hat{\beta}_0 - \overline{x}_1 \hat{\beta}_0 \\
+         =& \overline{x}_1\left( \hat{\beta}_0 - \hat{\beta}_1 \right) 
+          + \hat{\beta}_0 \left( \overline{x}_0 - \overline{x}_1 \right) 
+\end{split}
+$$
+
++ Are these equal?
++ When might they be?
++ Researchers have suggested many "averages" to address this
+
+### What happens with dummies/categories in a decomposition?
+
++ Look at a simplistic regression
++ Here, $d$ has three levels, one of which is left out
++ For completeness, $d_j = \mathbf{1}(D=j)$, $j=\{1,2,3\}$
+
+$$ 
+y_i = \beta_0 + \beta_1 d_{i1} + \beta_2 d_{2i} + e_i
+$$
+
++ As with the choice of base for the decomposition regression
++ The base of the categories affects the "math"
+
+### Add back the left-out dummy?
+
++ Consider this version of the model
+
+$$ 
+y_i = \beta_0 + \beta_1 d_{i1} + \beta_2 d_{2i} + \beta_3 d_{3i} + e_i
+$$
+
++ That would give a DV trap
++ But, can "restrict" $\beta_3 = 0$
++ Define: $a = \sum_j \beta_j /J$, here, $J=3$
+
+### Relation between $a$ and the $\beta$s?
+
++ With $a$ above and $(j \neq 0)$
+    + $\tilde\beta_0 = \beta_0 + a$
+    + $\tilde\beta_j = \beta_j - a$
++ The above model is equivalent to:
+
+$$ 
+y_i = \tilde\beta_0 + \tilde\beta_1 d_{i1} + \tilde\beta_2 d_{2i} + \tilde\beta_3 d_{3i} + e_i
+$$
+
++ Subject to the restriction: $\sum_j \tilde{\beta} = 0$
+
+## Brief Aside on Contrasts
+
+### Dummy coding in R 
+
++ "Dummy" is how economists normally use categories
++ For example, ```factor.var <- factor(var, levels = , labels =)```
+    + Levels can be used to create a baseline: first is the base
+    + Labels match the order of the levels
++ So, could redefine the factor, ```relevel``` the factor or
++ Can also use ```contr.treatment()``` to change the baseline
+    + For example ```factor.var <- contr.treatment(3, base = 2)```
+    + This uses group 2 as the baseline of the three levels
+
+### Standard dummy contrasts
+
++ Under our 'dummy' approach, the intercept is the left-out mean
++ This is a type of "contrast"; for ```contr.treatment(3)```
+
+```{r, results="markdown"}
+
+contr.treatment(3)
+```
+
++ Group 1 is base, and represents intercept
++ Column 2 compares variable 2 to base
++ Column 3 compares variable 3 to base
+
+### Sum Effects coding in R
+
++ One could consider a "sum"
++ It compares mean of a dependent variable for a given level to the overall mean of the dependent variable ```contr.sum(3)```
+
+```{r, results="markdown"}
+
+contr.sum(3)
+```
+
++ First column compares variable 1 to the grand mean 
++ Second compares variable 2 to the grand mean
++ Grand mean here is the mean of the means of the dependent variable across levels
+
+### Helmert effects in R
+
++ Helmert coding compares each level of a categorical variable to the mean of subsequent levels of the variable
++ ```myhelmert2 <- matrix(c(2/3, -1/3, -1/3, 0, .5, -.5), ncol = 2)```
++ ```myhelmert2```
+
+```{r, results = "markdown"}
+
+myhelmert2 <- matrix(c(2/3, -1/3, -1/3, 0, .5, -.5), ncol = 2)
+myhelmert2
+
+```
+
++ First  coefficient is mean of level 1 compared to the mean of levels 2, and 3
++ Second  coefficient is mean of level 2 compared to the mean of level 3  
+
+### Reverse helmert effects in R
+
++ Reverse helmert coding compares each level of a categorical variable to the mean of previous levels of the variable
++ ```contr.helmert(3)```
+
+```{r, results = "markdown"}
+contr.helmert(3)
+```
+
+
++ First regression coefficient is the mean of level 2 compared to the mean of level 1 
++ Second regression coefficient is mean of level 3 minus the mean of levels 1 and 2
++ Looking "vertically"
+
+
+## Decomp Example
+
+
+### Basic model
+
++ A very simple decompsition
++ Model
+    + Dep Var: Minimum required income (inverse hyperbolic sine)
+    + Ind Var: Household income (inverse hyperbolic sine)
+    + Decomp Group: Households with 1 child v Households with 0
+
++ "Question" 
+    + Is there a difference in minimum required income, due to having a child in the household?
+    + Is that difference related to differences in total household income (explained) or differences in the relationship between income and minimum income across groups (unexplained)?
+
+### Decomposition on first child: estimates
+
+```{r decompres, dependson = "LCS2014", results = "asis"}
+
+# Note this bootstrap does not necessarily correct for heteroskedasticity
+kids.dec <- oaxaca(lnminq ~ lny | kids, 
+                   data = LCS2014,
+                   group.weights = 0.5,
+                   R = 399)
+
+xtable(t(kids.dec$threefold$variables),
+       caption = "Three-fold decomp")
+```
+
++ Answers
+    + There does not seem to be much difference
+    + Does not seem to be explained or unexplained...
+
+### Decomposition on first child: plot endowments effect
+
+```{r decomp-plot, dependson = "decompres", fig.cap="Decomposition Results - Endowments"}
+
+dec.name <- names(kids.dec$x$x.mean.A) # gets names of variables
+
+plot(kids.dec, components="endowments")
+```
+
+### Decomposition on first child: plot coefficients effect
+
+```{r decomp-plot2, dependson = "decompres", fig.cap="Decomposition Results - Coefficients"}
+
+
+plot(kids.dec, components="coefficients")
+```    
+
+### Decomposition on first child: plot interactions effect
+
+```{r decomp-plot3, dependson = "decompres", fig.cap="Decomposition Results - Interactions"}
+
+
+plot(kids.dec, components="interaction")
+```    
+
+# Dimension Reduction
+
+## PCA
+
+### PCA background
+
+- Principle Components Analysis
+    + Find linear combination of something
+    + The linear combination should maximize the variance of the combination
+    
+- Why Use PCA?
+    + Imagine a bunch of wines on the table (all different)
+    + They have different characteristics: nose, colour, strength, tanins...
+    + Some of those characteristics might measure related properties
+    + Use PCA to find "fewer" characteristics
+
+### PCA intuition
+
++ Does not discard information
++ Re-imagines information as linear combination
++ We are going to transform the data to be orthogonal
+    + That is why we need Eigenvalues
+    + That is why we need data that is only 'scaled'
++ Picking out new characteristics that are truly different
++ But, difficult to "interpret" in use
+  
+### Basic PCA: Part 1
+
++ Assume an $n times k$ matrix of mean-centered data $X$
++ We want to find weights $w \in [0,1]$ that yield PCs from the data
++ Where $T$ are the PCs
+
+$$
+T = XW
+$$
+
+### Basic PCA: Part 2
+
++ We want to find weights that maximise the variance of the data
++ Thus, we want to solve, something like this, here is for the first weight vector
+
+$$ 
+w_1 = \arg \max_{||w|| = 1} w'X'Xw
+$$
+
++ The solution yields $w$ to be an eigenvector
+
+### PCA process: steps 1 - 2
+
+1. Standardize the data
+    + $s_{x_i}$ is the standard deviation of that variable
+    + There are times, when we use a different standardization
+
+$$ 
+\tilde x_i = \frac{x_i - \overline{x}}{s_{x_i}}
+$$
+
+2. Compute the variance-covariance matrix for $\tilde{X}$
+
+$$
+V(\tilde X,\tilde X) = \tilde X'\tilde X
+$$
+
+### PCA prcess: steps 3 - 5
+
+3. Compute the eigenvectors and values of $C$ - see previous slides
+
+4. Create feature vector $F$: eigenvectors we want to keep
+
+5. Recast the data
+
+$$
+\tilde X_{\text{recast}} =F' \tilde X
+$$
+
+## Example with Income and Expenditure
+
+```{r simplecor, dependson="lcs2"}
+
+cor.exinc <- cor(lasso.df$y.ihs,lasso.df$x.ihs)
+```
+
+
+### Recalling from above
+
++ Income/expenditure was ridged or lassoed
++ Thus, the dimensions were probably similar
++ Let us check the correlation 
+    + Should have done earlier, of course
+    + Correlation is: ```r round(cor.exinc,digits = 3)```
++ So, lets "combine"
+
+### Eigenvalues
+
+```{r pca1, dependson="lcs2"}
+
+xy.df <- lasso.df %>% dplyr::select(y.ihs,x.ihs) 
+
+pr.inc.exp <- prcomp(xy.df, scale = TRUE)
+
+pr.var <- pr.inc.exp$sdev^2
+pve <- pr.var/sum(pr.var)
+
+```
+
++ Let us find the two pieces
+    + Vector 1  = [ ```r pr.inc.exp$rotation[,1]``` ]
+    + Vector 2 = [ ```r pr.inc.exp$rotation[,2]``` ]
+
++ Rather similar
+    + Not surprising in this setting
+    + Only two dimensions
+    
++ With more dimensions, we have more than quadratic vector
+
++ Share of variation in first component = ```r pve[1]```
+
+### A plot of the data with eigenvectors
+
+```{r pca-data, dependson="pca1", fig.cap = "Plot of Income and Expenditure"}
+
+plot(x=xy.df$x.ihs, y=xy.df$y.ihs, type="p", 
+  xlab = "Expenditure IHS", ylab = "Income IHS")
+arrows(mean(xy.df$x.ihs), mean(xy.df$y.ihs),
+       pr.inc.exp$rotation[2,1] + mean(xy.df$x.ihs),
+       pr.inc.exp$rotation[1,1] + mean(xy.df$y.ihs),
+       col = "red", lwd = 3)
+arrows(mean(xy.df$x.ihs), mean(xy.df$y.ihs),
+       pr.inc.exp$rotation[2,2] + mean(xy.df$x.ihs),
+       pr.inc.exp$rotation[1,2] + mean(xy.df$y.ihs),
+       col = "blue", lwd = 3)
+
+```
+
+    
+### A plot of the loadings
+
+```{r pca2, dependson="pca1", fig.cap = "Plot of Loadings"}
+
+plot(prcomp(xy.df, scale. = TRUE),
+     main = "Loadings plot",
+     xlab = "Component dimensions")
+```
+
+
+### Regression with first component: estimates and prediction error
+
+```{r revised-regression, dependson="ridge.result; cv-ridge; pca1", results="asis"}
+
+
+train.rows <- sample(nrow(df.x),3*nrow(df.x)/4)
+
+xy1 <- t(as.matrix(pr.inc.exp$rotation[,1])) %*% t(as.matrix(xy.df)) 
+lasso.df2 <- lasso.df %>% add_column(xy.ihs = as.vector(xy1))
+
+df.train <- lasso.df2[train.rows,]
+df.test <- lasso.df2[-train.rows,]
+
+reg.cv <- lm(min.ihs ~ xy.ihs + kids + adults + age + male 
+                     + province + pop.group, 
+             data=df.train)
+
+reg.test.pred2 <- predict(reg.cv, 
+                         newdata = df.test)
+
+xtable(summary(reg.cv)$coefficients[2:5,])
+
+
+```
+
++ Prediction error from updated model = ```r round(mean((reg.test.pred2 - df.test$min.ihs)^2),4)```
+
+## Asset Index : Commonly Used in Applied Micro
+
+### Living standards
+
+- Measure living standards
+    + Could use income/expenditure
+    + Could use per capita income/expenditure
+    + Could use per adult equivalent income/expenditure
+- Single dimension measures
+
+### Multi-dimensional living standards
+
+- Obvious way to order/rank in single dimensions
+- What if combining dimensions?
+- May not be obviously ordered [@wittenbergleibbrandt2017]
+- So, find a way to combine
+
+
+### Proposed ideals - to be a "living standard" 
+
+- *Principle 1* Monotonicity
+    + With more of something, higher index value
+    + Intuitive
+
+- *Principle 2* Absolute zero
+    + Having nothing is the bottom
+    + Needed for reference
+    + Referred to as 'ratio-scale'
+    + Basically, no negatives
+    + Requires us to limit attention to **goods**
+
+- *Principle 3* Robustness
+    + Type of variable should not matter
+    + Categorical or continuous
+
+### Some Basic Points
+
+- PCA is a procedure
+    + It is devoid of a view
+    + It is also "unsupervised"
+    + Sometimes that view might matter
+    + True for all procedures!!!!!
+
+- Do not apply, just to apply
+    + Think about the inputs
+    + Requires thought about meaning
+    + How is it being used?
+    + For what is it being used?
+    
+### An Alternative
+
+1. Choose variables for asset index
+2. Run PCA
+3. Check PCA weights
+    + If all positive, ok, you are done
+    + If some negative, reconsider
+4. Run uncentered PCA
+    + Do not standardize variables as in step 1
+    + Instead, standardize through division by  means
+    + Guaranteed positive weights
+    + Otherwise, same steps
+5. Also, Re-run PCA dropping negative weight variables
+6. Check
+    + Look at rankings across indexes
+    + Look at inequality across indexes
+    + Important enough to matter?
+
+## Ridge and Lasso
+
+### Opening queries   
+
+1. What does least squares do?
+1. Optimum based on RSS
+1. Will it give us zeroes?
+    a. Statistically, yes
+    a. Should we ignore them?
+
+### Related queries
+
+1. How much data is there in a StatsSA survey?
+    a. ±20 000 households
+    a. ±80 000 individuals
+    a. ±3 different data sets
+    a. trillions and trillions of relationships?
+1. What variables should be included?
+    a. Sure, we use theory to limit
+    a. But, data is usually less precise than theory
+    
+### Attempt to simplify
+
+1. Dimension Reduction
+    a. Human 'interest' greatly limits regression controls
+        i. No one wants a 50 page table of results
+        i. No one wants to read the description of that table
+    a. $\ell_1$ shrinkage
+    a. $\ell_2$ shrinkage
+    a. One can also consider testing groups of coefficients and dropping
+1. Dimension Redefinition 
+    a. Principal components (centred or uncentered)
+    a. Multiple correspondence
+
+### Basic OLS
+
+1. As we know
+
+$$
+\min_{\beta} \sum_{i=1}^n \left(  y_i - \beta x_i \right)^2
+$$
+
+2. Noise will likely never give us an actual zero
+3. But, we are likely to get statistical insignificance
+4. There might also be collinearity 'fears'
+
+
+### Illustration
+
+```{r sillyplot, echo=F, fig.cap="True and estimated 0: A bit contrived"}
+
+e <- rnorm(100,0,1)
+y <- 0.5 + e
+x1 <- runif(100,0,5)
+x2 <- x1/1000
+model1 <- lm(y~x1)
+
+plot(x1,y)
+abline(h=mean(y),col="black",lwd=2)
+abline(reg=model1,col="red",lwd=2,lty=2)
+legend("topleft",
+       lwd=c(2,2),
+       lty=c(1,2),
+       c("True 0","Fitted 0"))
+
+```
+
+### Ridging
+
+1. We now add a penalty to the model
+
+
+$$
+\min_{\beta} \sum_{i=1}^n \left(  y_i - \beta x_i \right)^2 + \lambda \sum_{j=1}^p \beta_j^2  
+$$
+
+2. This is an $\ell_2$ penalty
+    a. It is squared
+    a. It is smooth
+    a. So, 0 is not so likely
+    a. All parameters "pushed down"
+
+
+### OLS estimates
+
+```{r ols-tab, dependson="lcs2", results="asis", size = "tiny"}
+
+linear.model <- lm(min.ihs ~ x.ihs + y.ihs + kids + adults + age + male + province + pop.group,
+                   data = lasso.df)
+
+linear.summary <- summary(linear.model)$coefficients[2:6,]
+xtable(linear.summary)
+```
+
++ Quick discussion
++ Next will do Ridge and compare to these
+
+
+```{r ridge, dependson="data", results='asis', size = "tiny"}
+
+# this does not take typical formula structure
+
+
+mnihs <- lasso.df$min.ihs
+
+ridge.reg = glmnet(df.x, mnihs, 
+                   nlambda = 100, #default
+                   alpha = 0, #ridge
+                   family = 'gaussian')
+
+
+```
+
+### Compare Some Results 
+
+```{r ridge.result, dependson="ridge", results="asis"}
+
+# ignoring the intercept in this
+res1 <- coef(ridge.reg)[2:6,1]
+res2 <- coef(ridge.reg)[2:6,50]
+res3 <- coef(ridge.reg)[2:6,100]
+olscoef <- coef(linear.model)[2:6]
+lambda1 <- paste0("lambda=",round(ridge.reg$lambda[1],3))
+lambda2 <- paste0("lambda=",round(ridge.reg$lambda[50]),3)
+lambda3 <- paste0("lambda=",round(ridge.reg$lambda[100],3))
+comparison <- cbind(olscoef,res1,res2,res3)
+colnames(comparison) <- c("OLS",lambda1,lambda2,lambda3)
+xtable(comparison,digits=4)
+
+```
+
+### Lambda plot - quite a few coefficients here...
+
+```{r, dependson="ridge", fig.cap="Lambda plot"}
+
+plot(ridge.reg, xvar = "lambda")
+
+```
+
+### Cross-Validated Plot
+
+```{r cv-ridge, dependson="ridge", fig.cap="CV Plot"}
+
+train.rows <- sample(nrow(df.x),3*nrow(df.x)/4)
+df.x.train <- df.x[train.rows,]
+df.x.test <- df.x[-train.rows,]
+mnihs.train <- mnihs[train.rows] # this is only one dimension, so no "," at the end
+mnihs.test <- mnihs[-train.rows]
+
+cv.ridge <- cv.glmnet(df.x.train,mnihs.train, alpha = 0)
+plot(cv.ridge)
+
+```
+
+
+### Cross-Validated Lambda and MSE
+
+```{r cv-ridge-lam, dependson="cv-ridge", results="asis"}
+
+lambda.ridge <- cv.ridge$lambda.min
+paste("Optimal value (Ridge) for lambda = ", round(lambda.ridge,4)," ")
+
+print(" ")
+
+ridge.test.prediction <- predict(cv.ridge,s=lambda.ridge,newx = df.x.test)
+paste("Prediction error from optimal Ridge model =", 
+      round(mean((ridge.test.prediction - mnihs.test)^2),4))
+```
+
+### Refit with Optimal Test Lambda
+
+```{r, finalestimates, dependson="cv-ridge-lambda;ridge; ridge.result", results="asis"}
+
+ridge.optimal <- glmnet(df.x, mnihs, alpha = 0)
+ridge.opt.predict <- predict(ridge.optimal,type="coefficients",s = lambda.ridge)[2:6,]
+
+results.compare <- cbind(olscoef,ridge.opt.predict)
+colnames(results.compare) <- c("OLS","Optimal Ridge")
+xtable(results.compare,digits=5)
+```
+
++ A bit of a difference?
++ Possible to use in probit [@lockingetal]
++ And, many other models
+
+## LASSO
+
+### An Adjustment to the Ridge
+
+1. We revise the penalty to the model
+
+
+$$
+\min_{\beta} \sum_{i=1}^n \left(  y_i - \beta x_i \right)^2 + \lambda \sum_{j=1}^p \left| \beta_j \right|
+$$
+
+2. This is an $\ell_1$ penalty
+    a. It is the absolute value
+    a. It is "pointy", like a check function
+    a. So, 0 is more likely
+    
+### Some Coefficients are Zeroed
+
+```{r lasso, dependson="cv-ridge", fig.cap="Lasso Coefficients"}
+
+lasso.reg = glmnet(df.x.train, mnihs.train, nlambda = 100, alpha = 1)
+plot(lasso.reg)
+
+```
+
+
+### Cross-Validated Plot
+
+```{r cv-lasso, dependson="cv-ridge", fig.cap="CV Plot"}
+
+cv.lasso <- cv.glmnet(df.x.train, mnihs.train, alpha = 1)
+plot(cv.lasso)
+
+```
+
+
+### Cross-Validated Lambda and MSE
+
+```{r cv-lasso-lam, dependson="cv-lasso", results="asis"}
+
+lambda.lasso <- cv.lasso$lambda.min
+
+paste("Optimal value for lambda (LASSO) = ", round(lambda.lasso,4)," ")
+
+print(" ")
+
+lasso.test.prediction <- predict(cv.lasso,s=lambda.lasso,newx = df.x.test)
+
+paste("Prediction error from optimal LASSO model =", 
+      round(mean((lasso.test.prediction - mnihs.test)^2),4))
+
+```
+
+### Refit with Optimal Test Lambda
+
+```{r, finalecompare, dependson="cv-lasso-lam;cv-ridge-lambda;ridge.result", results="asis"}
+
+lasso.optimal <- glmnet(df.x, mnihs, alpha = 1)
+lasso.opt.predict <- predict(lasso.optimal,type="coefficients",s = lambda.lasso)[2:6,]
+
+results.compare <- cbind(olscoef,lasso.opt.predict,ridge.opt.predict)
+colnames(results.compare) <- c("OLS","Optimal Lasso","Optimal Ridge")
+xtable(results.compare,digits=5)
+```
+
++ Hmmm, interesting difference?
+
+
+### OLS CV Value for Comparison
+
+```{r, dependson="ridge.result; cv-ridge", results="asis"}
+df.train <- lasso.df[train.rows,]
+df.test <- lasso.df[-train.rows,]
+reg.cv <- lm(min.ihs ~ x.ihs + y.ihs + kids + adults + age + male 
+                     + province + pop.group, 
+             data=df.train)
+
+reg.test.pred <- predict(reg.cv, 
+                         newdata = df.test)
+
+paste("Prediction error from OLS model =", 
+      round(mean((reg.test.pred - df.test$min.ihs)^2),4))
+
+```
+
+
++ As suggested, OLS can be better
++ But, it is really really close
++ Ridge "wins" by a bit
+
+# Principal Components Analysis
+
+## Eigenvectors and Eigenvalues
+
+### Eigenvector or characteristic value
+
++ Vector whose direction is unchanged if transformed
++ Define as $v$ with linear transformation $T$
++ And, assume a constant scale factor $\lambda$
+
+$$
+Tv = \lambda v
+$$
+
++ $\lambda$ is the characteristic root or eigenvalue
+
+### Some generic concepts
+
++ Vector has a magnitude and direction
++ Linear transforms rotate, stretch and or shear the vector
++ Eigenvectors only stretch...
++ So, return to above
+    + Consider matrix $A$ and vector $v$
+    + If $Av$ only scales $v$ by a factor $\lambda$...
+    + $v$ is an eigenvector of $A$, and $Av=\lambda v$
++ Thus, our interest is in solving for $v$
+
+$$
+(A - \lambda I) v = 0
+$$
+
++ This only "works" if - we are not inverting...
+
+$$
+| A - \lambda I | =  0
+$$
+
+### Simplistic example: Part 1
+
++ Take a simple $A$
+
+$$
+A = \begin{bmatrix} 2 & 1 \\ 1 & 2 \end{bmatrix}
+$$
+
++ Write down the determinant and solve for $\lambda$
+
+$$
+\begin{split}
+|A - \lambda I | &= \begin{bmatrix} 2-\lambda & 1 \\ 1 & 2-\lambda \end{bmatrix} \\
+&= (2-\lambda)^2 - 1 = \lambda^2 - 4\lambda + 3 \\
+\lambda &= \{1,3\}
+\end{split}
+$$
+
+### Simplistic example: Part 2
+
++ Solve for $v$, use $\lambda = 1$
+
+$$
+\begin{split}
+(A - \lambda I ) v &= \begin{bmatrix} 2-1 & 1 \\ 1 & 2-1 \end{bmatrix}  
+   \begin{bmatrix} v_1 \\ v_2 \end{bmatrix} = \begin{bmatrix} 0 \\ 0 \end{bmatrix} \\
+   &= \begin{bmatrix} 1 & 1 \\ 1 & 1 \end{bmatrix} \begin{bmatrix} v_1 \\ v_2 \end{bmatrix} = 
+     \begin{bmatrix} 0 \\ 0 \end{bmatrix}  \\
+&= \begin{bmatrix} v_1 + v_2 \\ v_1 + v_2 \end{bmatrix}  = 
+     \begin{bmatrix} 0 \\ 0 \end{bmatrix} \\
+v_1 &= -v_2 \\
+v = \begin{bmatrix} 1 \\ -1 \end{bmatrix} \\
+\end{split}
+$$
+
+
++ Do the same to find for $\lambda = 3$
+
+
+
