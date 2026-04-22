@@ -840,7 +840,8 @@ $$
 
 ## CEF Prediction Property I
 
-- Define $m(X_i)$ as a simple function of  $X_i$
+- Define $m(X_i)$ as a simple function of  $X_i$. Does not have to be linear. 
+- M is a general function. 
 - The CEF solves a minimum mean squared error (MMSE) prediction problem
 
 $$
@@ -897,13 +898,14 @@ $$
 ## Some Initial Definitions
 
 - Residual: $\hat{e} = y - \hat{y} = y - X\hat{\beta}$
+- Residual = Actual data - predicted data
 - Prediction Maker: $P=X(X'X)^{-1}X'$
 - Residual Maker: $M = I - X(X'X)^{-1}X'$
 - Properties: 
     - Symmetric: $M'=M$
     - Idempotent: $MM = M'M = M$
     - Makes residual: $My = \hat{e}$
-    - Regression of $X$ on $X$ gives perfect fit: $MX = 0$
+    - Regression of $X$ on $X$ gives perfect fit: $MX = 0$. Residual is 0.
     - ANOVA
     
 ## Residual and Prediction
@@ -919,6 +921,7 @@ My &= y - X(X'X)^{-1}X'y \\
 $$
 
 - Prediction should be fairly clear
+- Prediction statement excludes the y on the RHS.
 
 ## ANOVA I
 

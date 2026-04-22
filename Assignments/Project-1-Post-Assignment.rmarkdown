@@ -1,0 +1,545 @@
+---
+title: "EKT 813 Project 1: NIDS Wave 2 Adult Health Dataset"
+author: "Gustav, Nathan, Phakamani, Ruben"
+format: html
+editor: visual
+execute:
+  warning: false
+  message: false
+---
+
+# Setup
+
+```{r}
+library(haven)
+library(dplyr)
+library(tidyr)
+library(janitor)
+library(lubridate)
+library(tibble)
+library(ggplot2)
+library(knitr)
+library(kableExtra)
+library(scales)
+library(stringr)
+```
+
+# 1. Import data
+
+We consider the Adult, household derived and income derived data sets.
+
+```{r}
+adult <- read_dta("~/GitHub/UPEconQuants/Data/Adult_W2_Anon_V4.0.0.dta") |>
+  clean_names()
+
+hhderived <- read_dta("~/GitHub/UPEconQuants/Data/hhderived_W2_Anon_V4.0.0.dta") |>
+  clean_names()
+
+indderived <- read_dta("~/GitHub/UPEconQuants/Data/indderived_W2_Anon_V4.0.0.dta") |>
+  clean_names()
+```
+
+# 2. Build province and income inputs
+
+```{r}
+nids_missing_num <- c(-9, -8, -5, -3, -2)
+nids_missing_year <- c(9999, 8888, 5555, 3333, 2222)
+nids_missing_month_day <- c(99, 88, 55, 33, 22)
+
+province_data <- hhderived |>
+  select(w2_hhid, w2_prov2011) |>
+  mutate(
+    w2_prov2011 = replace(w2_prov2011, w2_prov2011 %in% nids_missing_num, NA_real_),
+    province = as_factor(w2_prov2011, levels = "labels")
+  ) |>
+  select(w2_hhid, province)
+
+income_components <- c(
+  "w2_fwag", "w2_cwag", "w2_swag", "w2_cheq", "w2_prof", "w2_extr",
+  "w2_bonu", "w2_othe", "w2_help", "w2_plot", "w2_opro", "w2_spen",
+  "w2_ppen", "w2_uif", "w2_comp", "w2_dis", "w2_chld", "w2_fost",
+  "w2_cdep", "w2_indi", "w2_inhe", "w2_rnt", "w2_retr", "w2_brid",
+  "w2_gift", "w2_loan", "w2_sale", "w2_remt"
+)
+
+income_data <- indderived |>
+  select(w2_hhid, pid, all_of(income_components)) |>
+  mutate(
+    across(
+      all_of(income_components),
+      ~ case_when(
+        .x %in% nids_missing_num ~ NA_real_,
+        TRUE ~ as.numeric(.x)
+      )
+    )
+  ) |>
+  mutate(
+    income_nonmissing = rowSums(!is.na(across(all_of(income_components)))),
+    income_rands = rowSums(across(all_of(income_components)), na.rm = TRUE),
+    income_rands = if_else(income_nonmissing == 0, NA_real_, income_rands)
+  ) |>
+  select(w2_hhid, pid, income_rands)
+```
+
+# 3. Merge without dropping observations
+
+```{r}
+adult_merged <- adult |>
+  left_join(province_data, by = "w2_hhid") |>
+  left_join(income_data, by = c("w2_hhid", "pid"))
+
+stopifnot(nrow(adult_merged) == nrow(adult))
+```
+
+# 4. Keep required variables, including interview outcome
+
+```{r}
+symptom_vars <- c(
+  "w2_a_hl30fl", "w2_a_hl30fev", "w2_a_hl30pc", "w2_a_hl30cb", "w2_a_hl30tc",
+  "w2_a_hl30cp", "w2_a_hl30b", "w2_a_hl30h", "w2_a_hl30ba", "w2_a_hl30jp",
+  "w2_a_hl30v", "w2_a_hl30d", "w2_a_hl30w", "w2_a_hl30pua", "w2_a_hl30pla",
+  "w2_a_hl30pu", "w2_a_hl30sa", "w2_a_hl30r", "w2_a_hl30sd", "w2_a_hl30c",
+  "w2_a_hl30wl", "w2_a_hl30ye", "w2_a_hl30ml", "w2_a_hl30i"
+)
+
+adl_vars <- c(
+  "w2_a_hldifdre", "w2_a_hldifbath", "w2_a_hldifeat", "w2_a_hldiftoil",
+  "w2_a_hldiftrn", "w2_a_hldifwrk", "w2_a_hldifmon", "w2_a_hldifstrs",
+  "w2_a_hldiflft", "w2_a_hldifwlk", "w2_a_hldifcook"
+)
+
+consult_vars <- c(
+  "w2_a_hlcontyp", "w2_a_hlconfee", "w2_a_hlconfee_v", "w2_a_hlconfee_p"
+)
+
+core_vars <- c(
+  "w2_hhid", "pid", "w2_a_outcome",
+  "w2_a_dob_y", "w2_a_dob_m", "w2_a_intrv_y", "w2_a_intrv_m", "w2_a_intrv_d",
+  "w2_a_gen", "w2_a_popgrp", "w2_a_marstt", "w2_a_edschgrd",
+  "w2_a_hlmedaid", "w2_a_hlcon",
+  "province", "income_rands"
+)
+
+adult_data_development <- adult_merged |>
+  select(any_of(c(core_vars, symptom_vars, adl_vars, consult_vars)))
+```
+
+# 5. Recode non-response values
+
+```{r}
+numeric_vars_to_clean <- setdiff(
+  names(adult_data_development |> select(where(is.numeric))),
+  c("w2_hhid", "pid")
+)
+
+adult_data_development <- adult_data_development |>
+  mutate(
+    across(
+      all_of(numeric_vars_to_clean),
+      ~ replace(.x, .x %in% nids_missing_num, NA_real_)
+    ),
+    across(
+      c(w2_a_dob_y, w2_a_intrv_y),
+      ~ replace(.x, .x %in% nids_missing_year, NA_real_)
+    ),
+    across(
+      c(w2_a_dob_m, w2_a_intrv_m, w2_a_intrv_d),
+      ~ replace(.x, .x %in% nids_missing_month_day, NA_real_)
+    )
+  )
+```
+
+# 6. Create age and health indicators
+
+```{r}
+adult_data_development <- adult_data_development |>
+  mutate(
+    dob = make_date(w2_a_dob_y, w2_a_dob_m, 15),
+    int_date = make_date(w2_a_intrv_y, w2_a_intrv_m, w2_a_intrv_d),
+    age_years = floor(time_length(interval(dob, int_date), "years"))
+  )
+
+symptom_binary <- adult_data_development |>
+  select(all_of(symptom_vars)) |>
+  mutate(
+    across(
+      everything(),
+      ~ case_when(
+        .x == 1 ~ 1L,
+        .x == 2 ~ 0L,
+        TRUE ~ NA_integer_
+      )
+    )
+  )
+
+adl_binary <- adult_data_development |>
+  select(all_of(adl_vars)) |>
+  mutate(
+    across(
+      everything(),
+      ~ case_when(
+        .x %in% c(2, 3, 4) ~ 1L,
+        .x %in% c(1, 5) ~ 0L,
+        TRUE ~ NA_integer_
+      )
+    )
+  )
+
+adult_data_development <- adult_data_development |>
+  mutate(
+    symptom_nonmissing = rowSums(!is.na(symptom_binary)),
+    symptom_yes_count = rowSums(symptom_binary, na.rm = TRUE),
+    ill30_any = case_when(
+      symptom_nonmissing == 0 ~ NA_integer_,
+      symptom_yes_count > 0 ~ 1L,
+      TRUE ~ 0L
+    ),
+    adl_nonmissing = rowSums(!is.na(adl_binary)),
+    adl_yes_count = rowSums(adl_binary, na.rm = TRUE),
+    adl_any = case_when(
+      adl_nonmissing == 0 ~ NA_integer_,
+      adl_yes_count > 0 ~ 1L,
+      TRUE ~ 0L
+    )
+  )
+```
+
+# 7. Create consultation variables
+
+```{r}
+adult_data_development <- adult_data_development |>
+  mutate(
+    consulted_last_12_months_flag = case_when(
+      w2_a_hlcon %in% c(1, 2, 3) ~ TRUE,
+      w2_a_hlcon %in% c(4, 5, 6, 7, 8) ~ FALSE,
+      TRUE ~ NA
+    ),
+    fee_charged_flag = case_when(
+      w2_a_hlconfee == 1 ~ TRUE,
+      w2_a_hlconfee == 2 ~ FALSE,
+      TRUE ~ NA
+    ),
+    consultation_fee_amount = case_when(
+      consulted_last_12_months_flag != TRUE ~ NA_real_,
+      fee_charged_flag == FALSE ~ 0,
+      fee_charged_flag == TRUE ~ w2_a_hlconfee_v,
+      TRUE ~ NA_real_
+    )
+  )
+```
+
+# 8. Build the final adult_data_development dataset with cleaner variable names
+
+```{r}
+factor_vars <- c(
+  "w2_a_outcome", "w2_a_gen", "w2_a_popgrp", "w2_a_marstt", "w2_a_edschgrd",
+  "w2_a_hlmedaid", "w2_a_hlcon", "w2_a_hlcontyp", "w2_a_hlconfee", "w2_a_hlconfee_p"
+)
+
+adult_data_development <- adult_data_development |>
+  mutate(
+    across(all_of(factor_vars), ~ as_factor(.x, levels = "labels")),
+    consultation_place = case_when(
+      consulted_last_12_months_flag == TRUE ~ as.character(w2_a_hlcontyp),
+      TRUE ~ NA_character_
+    ),
+    consultation_fee_charged = case_when(
+      consulted_last_12_months_flag == TRUE ~ as.character(w2_a_hlconfee),
+      TRUE ~ NA_character_
+    ),
+    consultation_paid_by = case_when(
+      consulted_last_12_months_flag == TRUE & fee_charged_flag == TRUE ~ as.character(w2_a_hlconfee_p),
+      TRUE ~ NA_character_
+    ),
+    provider_type = case_when(
+      consultation_place %in% c("Public hospital", "Public health clinic") ~ "Public",
+      consultation_place %in% c("Private hospital", "Private clinic", "Private doctor") ~ "Private",
+      consultation_place %in% c("Nurse or chemist", "Traditional healer") ~ "Other",
+      TRUE ~ NA_character_
+    ),
+    interview_outcome = w2_a_outcome,
+    gender = w2_a_gen,
+    population_group = w2_a_popgrp,
+    marital_status = w2_a_marstt,
+    highest_grade_completed = w2_a_edschgrd,
+    medical_aid = w2_a_hlmedaid,
+    last_health_consultation = w2_a_hlcon,
+    illness_last_30_days = factor(ill30_any, levels = c(0, 1), labels = c("No", "Yes")),
+    difficulty_daily_living = factor(adl_any, levels = c(0, 1), labels = c("No", "Yes")),
+    consulted_last_12_months = factor(
+      consulted_last_12_months_flag,
+      levels = c(FALSE, TRUE),
+      labels = c("No", "Yes")
+    ),
+    consultation_place = factor(consultation_place),
+    consultation_fee_charged = factor(consultation_fee_charged),
+    consultation_paid_by = factor(consultation_paid_by),
+    provider_type = factor(provider_type, levels = c("Public", "Private", "Other"))
+  ) |>
+  select(
+    household_id = w2_hhid,
+    person_id = pid,
+    interview_outcome,
+    age_years,
+    gender,
+    population_group,
+    marital_status,
+    highest_grade_completed,
+    province,
+    monthly_income_rands = income_rands,
+    medical_aid,
+    illness_last_30_days,
+    difficulty_daily_living,
+    last_health_consultation,
+    consulted_last_12_months,
+    consultation_place,
+    provider_type,
+    consultation_fee_charged,
+    consultation_fee_amount,
+    consultation_paid_by
+  )
+```
+
+# 9. Data development description and cleaner variable names
+
+The final `adult_data_development` dataset keeps the full merged adult sample and uses clean analysis-ready variable names. Variables are allowed to be missing where the questionnaire or linked files do not provide valid information.
+
+```{r}
+data_development_dictionary <- tibble(
+  clean_name = names(adult_data_development),
+  description = c(
+    "Household identifier",
+    "Person identifier",
+    "Adult interview outcome",
+    "Age in completed years at interview date",
+    "Gender",
+    "Population group",
+    "Marital status",
+    "Highest completed school grade",
+    "Province from the household-derived file",
+    "Total monthly individual income from indderived components",
+    "Medical aid coverage",
+    "Any illness symptom reported in the last 30 days",
+    "Any reported difficulty with daily living activities",
+    "Timing of most recent health consultation",
+    "Whether respondent consulted about health in the last 12 months",
+    "Place of most recent eligible consultation",
+    "Grouped provider type: Public, Private, or Other",
+    "Whether a consultation fee was charged",
+    "Consultation fee amount in Rand",
+    "Who paid the consultation fee"
+  )
+)
+
+kable(
+  data_development_dictionary,
+  caption = "Table 1: Cleaner variable names and descriptions in adult_data_development",
+  align = c("l", "l")
+) |>
+  kable_styling(full_width = FALSE, bootstrap_options = c("striped", "hover")) |>
+  column_spec(1, bold = TRUE) |>
+  column_spec(2, width = "30em")
+```
+
+# 10. Row-retention check
+
+```{r}
+row_check <- tibble(
+  stage = c("Adult raw file", "Final analytic dataset"),
+  rows = c(nrow(adult), nrow(adult_data_development))
+)
+
+kable(
+  row_check,
+  caption = "Table 2: Row check showing that observations are retained in the master dataset"
+) |>
+  kable_styling(full_width = FALSE)
+```
+
+# 11. Variable description table
+
+```{r}
+var_info <- tibble(
+  variable_name = c(
+    "household_id", "person_id", "interview_outcome", "age_years", "gender",
+    "population_group", "marital_status", "highest_grade_completed", "province",
+    "monthly_income_rands", "medical_aid", "illness_last_30_days",
+    "difficulty_daily_living", "last_health_consultation", "consulted_last_12_months",
+    "consultation_place", "provider_type", "consultation_fee_charged",
+    "consultation_fee_amount", "consultation_paid_by"
+  ),
+  definition = c(
+    "Household identifier",
+    "Person identifier",
+    "Adult interview outcome",
+    "Age in completed years at interview date",
+    "Gender",
+    "Population group",
+    "Marital status",
+    "Highest completed school grade",
+    "Province from household-derived file",
+    "Total monthly individual income from indderived components",
+    "Medical aid coverage",
+    "Any illness symptom in the last 30 days",
+    "Any difficulty with daily living activities",
+    "When respondent last consulted someone about health",
+    "Consulted about health in the last 12 months",
+    "Place of most recent eligible consultation",
+    "Grouped provider type: Public, Private, or Other",
+    "Whether a consultation fee was charged",
+    "Consultation fee amount in Rand",
+    "Who paid the consultation fee"
+  )
+)
+
+obs_counts <- tibble(
+  variable_name = names(adult_data_development),
+  usable_observations = sapply(adult_data_development, function(x) sum(!is.na(x))),
+  missing_observations = sapply(adult_data_development, function(x) sum(is.na(x)))
+)
+
+variable_table <- var_info |>
+  left_join(obs_counts, by = "variable_name")
+
+kable(
+  variable_table,
+  caption = "Table 3: Description of variables used in the analysis",
+  align = c("l", "l", "r", "r")
+) |>
+  kable_styling(full_width = FALSE, bootstrap_options = c("striped", "hover")) |>
+  column_spec(1, bold = TRUE) |>
+  column_spec(2, width = "26em")
+```
+
+# 12. Save cleaned dataset
+
+```{r}
+write_dta(adult_data_development, "Adult_W2_Project1_final_republished.dta")
+write.csv(adult_data_development, "Adult_W2_Project1_final_republished.csv", row.names = FALSE)
+```
+
+# 13. Figure 1: Medical aid coverage
+
+```{r}
+build_age_group <- function(x) {
+  case_when(
+    x >= 15 & x <= 24 ~ "15-24",
+    x >= 25 & x <= 34 ~ "25-34",
+    x >= 35 & x <= 44 ~ "35-44",
+    x >= 45 & x <= 54 ~ "45-54",
+    x >= 55 & x <= 64 ~ "55-64",
+    x >= 65 ~ "65+",
+    TRUE ~ NA_character_
+  )
+}
+
+med_summary <- adult_data_development |>
+  mutate(
+    age_group_plot = build_age_group(age_years),
+    age_group_plot = factor(age_group_plot, levels = c("15-24", "25-34", "35-44", "45-54", "55-64", "65+")),
+    medical_aid_yes = case_when(
+      as.character(medical_aid) == "Yes" ~ 1,
+      as.character(medical_aid) == "No" ~ 0,
+      TRUE ~ NA_real_
+    )
+  ) |>
+  filter(
+    !is.na(age_group_plot),
+    !is.na(population_group),
+    !is.na(gender),
+    !is.na(medical_aid_yes)
+  ) |>
+  group_by(age_group_plot, population_group, gender) |>
+  summarise(
+    medical_aid_coverage = mean(medical_aid_yes) * 100,
+    n = n(),
+    .groups = "drop"
+  )
+
+fig1_medical_aid <- med_summary |>
+  ggplot(aes(x = age_group_plot, y = medical_aid_coverage, fill = population_group)) +
+  geom_col(position = "dodge") +
+  facet_wrap(~ gender, ncol = 2) +
+  scale_y_continuous(labels = function(x) paste0(x, "%"), limits = c(0, 100)) +
+  labs(
+    title = "Medical Aid Coverage by Age, Population Group and Gender",
+    x = "Age group",
+    y = "Medical aid coverage (%)",
+    fill = "Population group",
+    caption = "Source: NIDS Wave 2 adult data. Author's calculations."
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(face = "bold"),
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    legend.position = "bottom",
+    strip.text = element_text(face = "bold")
+  )
+
+fig1_medical_aid
+
+ggsave("Figure1_Medical_Aid_Coverage.png", fig1_medical_aid, width = 12, height = 8, dpi = 300)
+```
+
+# 14. Figure 2: Public vs private vs other consultation
+
+```{r}
+consult_summary <- adult_data_development |>
+  mutate(
+    age_group_plot = build_age_group(age_years),
+    age_group_plot = factor(age_group_plot, levels = c("15-24", "25-34", "35-44", "45-54", "55-64", "65+"))
+  ) |>
+  filter(
+    as.character(consulted_last_12_months) == "Yes",
+    !is.na(age_group_plot),
+    !is.na(population_group),
+    !is.na(gender),
+    !is.na(provider_type)
+  ) |>
+  group_by(age_group_plot, population_group, gender, provider_type) |>
+  summarise(n = n(), .groups = "drop") |>
+  group_by(age_group_plot, population_group, gender) |>
+  mutate(percentage = n / sum(n) * 100) |>
+  ungroup()
+
+fig2_provider_type <- consult_summary |>
+  ggplot(aes(x = age_group_plot, y = percentage, fill = provider_type)) +
+  geom_col(position = position_dodge2(preserve = "single", width = 0.7)) +
+  facet_grid(gender ~ population_group) +
+  scale_y_continuous(labels = function(x) paste0(x, "%"), limits = c(0, 100)) +
+  labs(
+    title = "Type of Health Consultation by Age, Population Group and Gender",
+    x = "Age group",
+    y = "Share of consultations (%)",
+    fill = "Provider type",
+    caption = "Source: NIDS Wave 2 adult data. Author's calculations."
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(face = "bold"),
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    legend.position = "bottom",
+    strip.text = element_text(face = "bold")
+  )
+
+fig2_provider_type
+
+ggsave("Figure2_Consultation_Type.png", fig2_provider_type, width = 14, height = 9, dpi = 300)
+```
+
+# 15. Final checks
+
+```{r}
+glimpse(adult_data_development)
+summary(adult_data_development$age_years)
+table(adult_data_development$interview_outcome, useNA = "ifany")
+table(adult_data_development$province, useNA = "ifany")
+table(adult_data_development$illness_last_30_days, useNA = "ifany")
+table(adult_data_development$difficulty_daily_living, useNA = "ifany")
+```
+
+#Save the new dataset
+
+```{r}
+save(adult_data_development, file = "Adult_Project1.RData")
+```
