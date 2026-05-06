@@ -1,15 +1,26 @@
 ---
-title: "EKT 813 Project 1: NIDS Wave 2 Adult Health Dataset"
+title: "EKT 813 Project 2: NIDS Wave 2 Adult Health Dataset"
 author: "Gustav, Nathan, Phakamani, Ruben"
 format: html
 editor: visual
 execute:
   warning: false
   message: false
+knitr:
+  opts_chunk:
+    echo: true
+    eval: true
+    cache: true
+    concordance: true
+    autodep: true
+    comment: "#>"
+    dpi: 300
+    fig.align: "center"
+    out.width: 75%
 ---
 
 # Project 1
-
+To do: Clean province data approach. No need to create another data set.
 ## Setup
 
 ```{r}
@@ -43,12 +54,12 @@ indderived <- read_dta("~/GitHub/UPEconQuants/Data/indderived_W2_Anon_V4.0.0.dta
 
 ## 1.2 Clean Data
 
-Codes are used to indicate observations in which the respondent refused to answer etc. We transform these coded values to missing observations, meaning they cannot interfere with the data accuracy. This is done at the start of the coding process to remove repetitive steps.
+Codes are used to indicate observations in which the respondent refused to answer etc. We transform these coded values to missing observations, meaning they cannot interfere with the data accuracy. This is done at the start of the coding process to remove repetitive steps. For Project 2, include 44 and 77.
 
 ```{r}
 codes <- c(-9, -8, -5, -3, -2,
            9999, 8888, 5555, 3333, 2222,
-           99, 88, 55, 33, 22)
+           99, 88, 55, 33, 22, 44, 77)
 
 hhderived <- hhderived |>
   mutate(across(
@@ -74,31 +85,15 @@ indderived <- indderived |>
 What should be done to observations "other" contained in province data? Probably not in SA? So just say that they stay outside of SA? For the income data. If all the income components are missing, then the total remains missing. If at least 1 of the income components is 0 (with the rest being missing), the total is 0.
 
 ```{r}
-#nids_missing_num <- c(-9, -8, -5, -3, -2)
-#nids_missing_year <- c(9999, 8888, 5555, 3333, 2222)
-#nids_missing_month_day <- c(99, 88, 55, 33, 22)
-
-
 province_data <- hhderived |>
   select(w2_hhid, w2_prov2011) |>
   mutate(province = as_factor(w2_prov2011, levels = "labels")
   ) |>
   select(w2_hhid, province)
 
-
-#income_components <- c(
-#  "w2_fwag", "w2_cwag", "w2_swag", "w2_cheq", "w2_prof", "w2_extr",
-#  "w2_bonu", "w2_othe", "w2_help", "w2_plot", "w2_opro", "w2_spen",
-#  "w2_ppen", "w2_uif", "w2_comp", "w2_dis", "w2_chld", "w2_fost",
-#  "w2_cdep", "w2_indi", "w2_inhe", "w2_rnt", "w2_retr", "w2_brid",
-#  "w2_gift", "w2_loan", "w2_sale", "w2_remt"
-#)
-
 income_components <- indderived |>
   select(w2_fwag:w2_remt) |>
   names()
-
-
 
 income_data <- indderived |>
   select(w2_hhid, pid, all_of(income_components)) |>
@@ -115,12 +110,6 @@ income_data <- indderived |>
 Province data is merged using the HHID, which assumes that all respondents still live in that HH.
 
 ```{r}
-#adult_merged <- adult |>
-#  left_join(province_data, by = "w2_hhid") |>
-#  left_join(income_data, by = c("w2_hhid", "pid"))
-
-#stopifnot(nrow(adult_merged) == nrow(adult))
-
 adult <- adult |>
   left_join(province_data, by = "w2_hhid") |>
   left_join(income_data, by = c("w2_hhid", "pid"))
@@ -131,35 +120,17 @@ stopifnot(nrow(adult) == nrow(adult))
 ## 4. Keep required variables, including interview outcome
 
 ```{r}
-#symptom_vars <- c(
-#  "w2_a_hl30fl", "w2_a_hl30fev", "w2_a_hl30pc", "w2_a_hl30cb", "w2_a_hl30tc",
-#  "w2_a_hl30cp", "w2_a_hl30b", "w2_a_hl30h", "w2_a_hl30ba", "w2_a_hl30jp",
-#  "w2_a_hl30v", "w2_a_hl30d", "w2_a_hl30w", "w2_a_hl30pua", "w2_a_hl30pla",
-# "w2_a_hl30pu", "w2_a_hl30sa", "w2_a_hl30r", "w2_a_hl30sd", "w2_a_hl30c",
-#  "w2_a_hl30wl", "w2_a_hl30ye", "w2_a_hl30ml", "w2_a_hl30i"
-#)
 symptoms <- adult |>
   select(w2_a_hl30fl:w2_a_hl30i) |>
   names()
 
-
-#adl_vars <- c(
-#  "w2_a_hldifdre", "w2_a_hldifbath", "w2_a_hldifeat", "w2_a_hldiftoil",
-#  "w2_a_hldiftrn", "w2_a_hldifwrk", "w2_a_hldifmon", "w2_a_hldifstrs",
-#  "w2_a_hldiflft", "w2_a_hldifwlk", "w2_a_hldifcook"
-#)
 adl_vars <- adult |>
   select(w2_a_hldifdre:w2_a_hldifcook) |>
   names()
 
-
-#consult_vars <- c(
-#  "w2_a_hlcontyp", "w2_a_hlconfee", "w2_a_hlconfee_v", "w2_a_hlconfee_p"
-#)
 consult_vars <- adult |>
   select(w2_a_hlcontyp:w2_a_hlconfee_p) |>
   names()
-
 
 core_vars <- c(
   "w2_hhid", "pid", "w2_a_outcome",
@@ -169,67 +140,12 @@ core_vars <- c(
   "province", "income_rands"
 )
 
-
-#adult_data_development <- adult_merged |>
-#  select(any_of(c(core_vars, symptom_vars, adl_vars, consult_vars)))
 adult_demographics <- adult |>
   select(any_of(c(core_vars, symptoms, adl_vars, consult_vars)))
 
 ```
 
-## 5. Recode non-response values
-
-This step is redundant. Test to make sure that the datasets are identical before and after recoding non-response values.
-
-```{r}
-#numeric_vars_to_clean <- setdiff(
-#  names(adult_data_development |> select(where(is.numeric))),
-#  c("w2_hhid", "pid")
-#)
-
-#adult_data_development <- adult_data_development |>
-#  mutate(
-#    across(
-#      all_of(numeric_vars_to_clean),
-#      ~ replace(.x, .x %in% nids_missing_num, NA_real_)
-#    ),
-#    across(
-#      ~ replace(.x, .x %in% nids_missing_year, NA_real_)
-#    ),
-#    across(
-#      c(w2_a_dob_m, w2_a_intrv_m, w2_a_intrv_d),
-#      ~ replace(.x, .x %in% nids_missing_month_day, NA_real_)
-#    )
-#  )
-
-#numeric_vars_to_clean <- setdiff(
-#  names(adult_demographics |> 
-#          select(where(is.numeric))),
-#  c("w2_hhid", "pid")
-#)
-
-#adult_test <- adult_demographics |>
-#  mutate(
-#    across(
-#      all_of(numeric_vars_to_clean),
-#      ~ replace(.x, .x %in% codes, NA_real_)
-#    ),
-#    across(
-#      c(w2_a_dob_y, w2_a_intrv_y),
-#      ~ replace(.x, .x %in% codes, NA_real_)
-#    ),
-#    across(
-#      c(w2_a_dob_m, w2_a_intrv_m, w2_a_intrv_d),
-#      ~ replace(.x, .x %in% codes, NA_real_)
-#    )
-#  )
-
-#identical(adult_demographics, adult_test)
-```
-
-## 6. Create age and health indicators
-
-In ADL does 5 (able to but never do) a disability? I changed the name to reflect the dummies that are created.
+## 5. Create age and health indicators
 
 ```{r}
 adult_demographics <- adult_demographics |>
@@ -258,8 +174,8 @@ adl_dummy <- adult_demographics |>
     across(
       everything(),
       ~ case_when(
-        .x %in% c(2, 3, 4) ~ 1L,
-        .x %in% c(1, 5) ~ 0L,
+        .x %in% c(2, 3, 4, 5) ~ 1L,
+        .x %in% c(1) ~ 0L,
         TRUE ~ NA_integer_
       )
     )
@@ -284,7 +200,7 @@ adl_dummy <- adult_demographics |>
   )
 ```
 
-## 7. Create consultation variables
+## 6. Create consultation variables
 
 ```{r}
 adult_demographics <- adult_demographics |>
@@ -308,7 +224,7 @@ adult_demographics <- adult_demographics |>
   )
 ```
 
-## 8. Build the final adult_data_development dataset with cleaner variable names
+## 7. Build the final adult_data_development dataset with cleaner variable names
 
 ```{r}
 factor_vars <- c(
@@ -380,48 +296,7 @@ adult_data_development <- adult_demographics |>
   )
 ```
 
-## 9. Data development description and cleaner variable names
-
-The final `adult_data_development` data set keeps the full merged adult sample and uses clean analysis-ready variable names. Variables are allowed to be missing where the questionnaire or linked files do not provide valid information.
-
-```{r}
-data_development_dictionary <- tibble(
-  clean_name = names(adult_data_development),
-  description = c(
-    "Household identifier",
-    "Person identifier",
-    "Adult interview outcome",
-    "Age in completed years at interview date",
-    "Gender",
-    "Population group",
-    "Marital status",
-    "Highest completed school grade",
-    "Province from the household-derived file",
-    "Total monthly individual income from indderived components",
-    "Medical aid coverage",
-    "Any illness symptom reported in the last 30 days",
-    "Any reported difficulty with daily living activities",
-    "Timing of most recent health consultation",
-    "Whether respondent consulted about health in the last 12 months",
-    "Place of most recent eligible consultation",
-    "Grouped provider type: Public, Private, or Other",
-    "Whether a consultation fee was charged",
-    "Consultation fee amount in Rand",
-    "Who paid the consultation fee"
-  )
-)
-
-kable(
-  data_development_dictionary,
-  caption = "Table 1: Cleaner variable names and descriptions in adult_data_development",
-  align = c("l", "l")
-) |>
-  kable_styling(full_width = FALSE, bootstrap_options = c("striped", "hover")) |>
-  column_spec(1, bold = TRUE) |>
-  column_spec(2, width = "30em")
-```
-
-## 10. Row-retention check
+## 8. Row-retention check
 
 ```{r}
 row_check <- tibble(
@@ -436,69 +311,14 @@ kable(
   kable_styling(full_width = FALSE)
 ```
 
-## 11. Variable description table
-
-```{r}
-var_info <- tibble(
-  variable_name = c(
-    "household_id", "person_id", "interview_outcome", "age_years", "gender",
-    "population_group", "marital_status", "highest_grade_completed", "province",
-    "monthly_income_rands", "medical_aid", "illness_last_30_days",
-    "difficulty_daily_living", "last_health_consultation", "consulted_last_12_months",
-    "consultation_place", "provider_type", "consultation_fee_charged",
-    "consultation_fee_amount", "consultation_paid_by"
-  ),
-  definition = c(
-    "Household identifier",
-    "Person identifier",
-    "Adult interview outcome",
-    "Age in completed years at interview date",
-    "Gender",
-    "Population group",
-    "Marital status",
-    "Highest completed school grade",
-    "Province from household-derived file",
-    "Total monthly individual income from indderived components",
-    "Medical aid coverage",
-    "Any illness symptom in the last 30 days",
-    "Any difficulty with daily living activities",
-    "When respondent last consulted someone about health",
-    "Consulted about health in the last 12 months",
-    "Place of most recent eligible consultation",
-    "Grouped provider type: Public, Private, or Other",
-    "Whether a consultation fee was charged",
-    "Consultation fee amount in Rand",
-    "Who paid the consultation fee"
-  )
-)
-
-obs_counts <- tibble(
-  variable_name = names(adult_data_development),
-  usable_observations = sapply(adult_data_development, function(x) sum(!is.na(x))),
-  missing_observations = sapply(adult_data_development, function(x) sum(is.na(x)))
-)
-
-variable_table <- var_info |>
-  left_join(obs_counts, by = "variable_name")
-
-kable(
-  variable_table,
-  caption = "Table 3: Description of variables used in the analysis",
-  align = c("l", "l", "r", "r")
-) |>
-  kable_styling(full_width = FALSE, bootstrap_options = c("striped", "hover")) |>
-  column_spec(1, bold = TRUE) |>
-  column_spec(2, width = "26em")
-```
-
-## 12. Save cleaned dataset
+## 9. Save cleaned dataset
 
 ```{r}
 write_dta(adult_data_development, "Adult_W2_Project1_final_republished.dta")
 write.csv(adult_data_development, "Adult_W2_Project1_final_republished.csv", row.names = FALSE)
 ```
 
-## 13. Figure 1: Medical aid coverage
+## 10. Figure 1: Medical aid coverage
 
 ```{r}
 build_age_group <- function(x) {
@@ -561,7 +381,7 @@ fig1_medical_aid
 ggsave("Figure1_Medical_Aid_Coverage.png", fig1_medical_aid, width = 12, height = 8, dpi = 300)
 ```
 
-## 14. Figure 2: Public vs private vs other consultation
+## 11. Figure 2: Public vs private vs other consultation
 
 ```{r}
 consult_summary <- adult_data_development |>
@@ -608,7 +428,7 @@ fig2_provider_type
 ggsave("Figure2_Consultation_Type.png", fig2_provider_type, width = 14, height = 9, dpi = 300)
 ```
 
-## 15. Final checks
+## 12. Final checks
 
 ```{r}
 glimpse(adult_data_development)
@@ -625,16 +445,17 @@ table(adult_data_development$difficulty_daily_living, useNA = "ifany")
 save(adult_data_development, file = "Adult_Project1.RData")
 ```
 
-
 #Project 2
 
-## 1. Incorporating Expenditure data 
+## 1. Incorporating Expenditure data
+
 ```{r}
 #Food Expenditure:
 adult_demographics <- adult_demographics |>
   left_join(hhderived |>
               select(w2_hhid, food_expend = w2_expf),
             by = "w2_hhid")
+
 
 #Total Household Monthly Expenditure
 adult_demographics <- adult_demographics |>
@@ -648,10 +469,223 @@ adult_demographics <- adult_demographics |>
               select(w2_hhid, non_food_expend = w2_expnf),
             by = "w2_hhid")
 
+#Include expenditure data by the PID
 adult_data_development <- adult_data_development |>
   left_join(adult_demographics |>
-              select())
+              select(person_id = pid, food_expend, total_expend, non_food_expend),
+            by = "person_id")
 ```
+
+
+## 2. Identifying the household head
+```{r}
+#Create a dummy variable. 1 if PID is the HH decision maker, or 0.
+#What to do with shared decision makers?
+
+adult_demographics <- adult_demographics |>
+  mutate(head_dummy = if_else(pid == adult$w2_a_decdpid, 1, 0))
+
+adult_data_development <- adult_data_development |>
+  left_join(adult_demographics |>
+              select(person_id = pid, head_dummy),
+            by = "person_id")
+```
+
+
+## 3. Self-assessed health
+```{r}
+#Respondents perceived health status: 
+adult_demographics <- adult_demographics |>
+  mutate(self_health = as_factor(adult$w2_a_hldes, levels = "labels"))
+
+adult_data_development <- adult_data_development |>
+  left_join(adult_demographics |>
+              select(person_id = pid, self_health),
+            by = "person_id")
+```
+
+
+## 4. Data Description Table
+```{r}
+var_info <- tibble(
+  variable_name = c(
+    "household_id", "person_id", "interview_outcome", "age_years", "gender",
+    "population_group", "marital_status", "highest_grade_completed", "province",
+    "monthly_income_rands", "medical_aid", "illness_last_30_days",
+    "difficulty_daily_living", "last_health_consultation", "consulted_last_12_months",
+    "consultation_place", "provider_type", "consultation_fee_charged",
+    "consultation_fee_amount", "consultation_paid_by", "food_expend", "total_expend",
+    "non_food_expend", "head_dummy", "self_health"
+  ),
+  definition = c(
+    "Household identifier",
+    "Person identifier",
+    "Adult interview outcome",
+    "Age in completed years at interview date",
+    "Gender",
+    "Population group",
+    "Marital status",
+    "Highest completed school grade",
+    "Province from household-derived file",
+    "Total monthly individual income from indderived components",
+    "Medical aid coverage",
+    "Any illness symptom in the last 30 days",
+    "Any difficulty with daily living activities",
+    "When respondent last consulted someone about health",
+    "Consulted about health in the last 12 months",
+    "Place of most recent eligible consultation",
+    "Grouped provider type: Public, Private, or Other",
+    "Whether a consultation fee was charged",
+    "Consultation fee amount in Rand",
+    "Who paid the consultation fee",
+    "Monthly household expenditure on food",
+    "Monthly household expenditure",
+    "Monthly household non-food expenditure",
+    "1 If the respondent is considered a head of the household",
+    "Self-assessed health status"
+  )
+)
+
+obs_counts <- tibble(
+  variable_name = names(adult_data_development),
+  usable_observations = sapply(adult_data_development, function(x) sum(!is.na(x))),
+  missing_observations = sapply(adult_data_development, function(x) sum(is.na(x)))
+)
+
+variable_table <- var_info |>
+  left_join(obs_counts, by = "variable_name")
+
+kable(
+  variable_table,
+  caption = "Table 3: Description of variables used in the analysis",
+  align = c("l", "l", "r", "r")
+) |>
+  kable_styling(full_width = FALSE, bootstrap_options = c("striped", "hover")) |>
+  column_spec(1, bold = TRUE) |>
+  column_spec(2, width = "26em")
+```
+
+
+## 5. Income and Expenditure Density Functions
+Observations with a missing medical aid status have been excluded. 
+```{r}
+hhheads <- adult_data_development |> 
+  filter(head_dummy == 1,
+         !is.na(medical_aid),
+         !is.na(self_health))
+
+#Income Density Function:
+ggplot(hhheads, aes(x = log(monthly_income_rands), fill = factor(medical_aid))) + 
+  geom_density(alpha = 0.4) +
+  labs(
+    x = "Log of Monthly Income (Rands)",
+    y = "Density",
+    fill = "Medical Aid", 
+    title = "Income distribution by Medical Aid Coverage of Household Heads"
+  ) +
+  scale_fill_manual(values = c("red", "darkgreen"),
+                    labels = c("No medical aid", "Medical Aid")) +
+  theme_classic()
+
+
+#Expenditure Density Function: 
+ggplot(hhheads, aes(x = log(total_expend), fill = factor(medical_aid))) + 
+  geom_density(alpha = 0.4) +
+  labs(
+    x = "Monthly Expenditure (Rands)",
+    y = "Density",
+    fill = "Medical Aid", 
+    title = "Expenditure distribution by Medical Aid Coverage of Household Heads"
+  ) +
+  scale_fill_manual(values = c("red", "darkgreen"),
+                    labels = c("No medical aid", "Medical Aid")) +
+  theme_classic()
+
+
+#CDF of Medical aid coverage by income:
+ggplot(hhheads, aes(x = monthly_income_rands, colour = medical_aid)) +
+  stat_ecdf() +
+  labs(
+    x = "Monthly Income",
+    y = "Cumulative Distribution Function",
+    colour = "Medical Aid",
+    title = "CDF of Medical Aid Coverage by Income"
+  ) +
+  scale_colour_manual(values = c("red", "darkgreen"),
+                    labels = c("No medical aid", "Medical Aid"))+
+  theme_classic()
+
+```
+
+
+## 6. Self-assessed Density Function
+```{r}
+#Self-assessed health status density function:
+ggplot(hhheads, aes(x = self_health, fill = medical_aid)) + 
+  geom_bar(position = "dodge") +
+  labs(
+    x = "Self-Assessed Health Status",
+    y = "Count",
+    fill = "Medical Aid", 
+    title = "Self-Assessed Health Status by Medical Aid Coverage of Household Heads"
+  ) +
+  scale_fill_manual(values = c("red", "darkgreen"),
+                    labels = c("No medical aid", "Medical Aid")) +
+  theme_minimal()
+
+#ggplot(hhheads, aes(x = self_health)) + 
+#  geom_bar(fill = "steelblue") +
+#  facet_wrap(~ medical_aid) +
+#  labs(
+#    x = "Self-Assessed Health Status",
+#    y = "Count",
+#    title = "Health Distribution by Medical Aid (Household Heads)"
+#  ) +
+#  theme_minimal()
+```
+
+
+## 7. Concentration curve for self-assessed health status
+```{r}
+heads <- adult_data_development |>
+  filter(head_dummy ==1,
+         !is.na(monthly_income_rands),
+         !is.na(self_health))
+
+
+heads <- heads |>
+  mutate(self_health_num = case_when(
+    self_health == "Excellent" ~ 1,
+    self_health == "Very good" ~ 2,
+    self_health == "Good" ~ 3,
+    self_health == "Fair" ~ 4,
+    self_health == "Poor" ~ 5
+  ))
+
+heads <- heads |>
+  arrange(monthly_income_rands) |>
+  mutate(
+    rank = row_number(),
+    cum_pop = rank / n()
+  )
+
+heads <- heads |>
+  mutate(
+    health_share = self_health_num / sum(self_health_num, na.rm = TRUE),
+    cum_health = cumsum(health_share)
+  )
+
+ggplot(heads, aes(x = cum_pop, y = cum_health)) +
+  geom_line(color = "orange", linewidth = 1) +
+  geom_abline(intercept = 0, slope = 1, linetype = "dashed") +
+  labs(
+    x = "Cumulative Share of Population (Ranked by Income)",
+    y = "Cumulative Share of Health (Worse Health)",
+    title = "Concentration Curve for Self-Assessed Health"
+  ) +
+  theme_minimal()
+```
+
 
 
 

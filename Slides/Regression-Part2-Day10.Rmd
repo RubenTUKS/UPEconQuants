@@ -104,8 +104,8 @@ ihs <- function(col) {
 }
 
 # LCS data
-person <- read_dta(file = "../../../Data/lcs-2014-2015-persons-final-v1.dta")
-household <- read_dta(file = "../../../Data/lcs-2014-2015-households-v1.dta")
+person <- read_dta(file = "~/GitHub/UPEconQuants/Data/lcs-2014-2015-persons-final-v1.dta")
+household <- read_dta(file = "~/GitHub/UPEconQuants/Data/lcs-2014-2015-households-v1.dta")
 
 
 # hhsize, number of kids (age < 15) in each household
